@@ -4,11 +4,15 @@
 #ifndef PARSER
 #define PARSER
 
-struct parseInfo;
-void init_info(parseInfo);
-void parse_command(char, struct);
-parseInfo *parse (char);
-void print_info (parseInfo);
-void free_info (parseInfo);
+typedef struct {
+		char *name;
+		char *usage;
+		int type;
+} parseInfo;
+
+extern void parse_command (char, parseInfo);
+extern void *parse (char);
+extern void print_info (parseInfo);
+extern void free_info (parseInfo);
 
 #endif
