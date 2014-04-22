@@ -15,6 +15,7 @@ char split (char *string) {
 	char *result;
 	char strArray[10];
 	int count = 0;
+	int test = 0;
 
 	result = srtok_r(string, delimiter);
 
