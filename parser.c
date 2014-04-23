@@ -4,35 +4,44 @@
  *  Created on: 14/04/2014
  *      Author: Fraser
  */
+#define _CRT_SECURE_NO_WARNINGS
 
-#include "parser.h"
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include "parser.h"
 
+/* Splits a string of space seperated words into an array of words*/
+char **split (char str[]) {
+	char *token = strtok(str, " ");
+	char **commands = NULL;
+	int count = 0, i;
 
-char split (char *string) {
-	char delimiter[] = " ";
-	char *result;
-	char strArray[10];
-	int count = 0;
-	int test = 0;
-
-	result = srtok_r(string, delimiter);
-
-	while (result) {
-		strcpy(strArray[count++], result);
-		result = strtok_r(0, delimiter);
+	while (token) {
+		commands = realloc(commands, sizeof(char*)* ++count);
+		commands[count - 1] = token;
+		token = strtok(0, " ");
 	}
 
-	return strArray;
+	printf("Adding null to end...\n");
+	commands = realloc(commands, sizeof (char*)* (count + 1));
+	commands[count] = 0;
+	
+	printf("%s\n", commands[0]);
+	return commands;
 }
 
+/*Parses a command*/
 void parse_command (char *command, parseInfo *p) {
 }
 
-void *parse (char *cmdline) {
-	char *commands = split(*cmdline);
-	printf("%s\n", commands[0]);
+/*Parses a line of commands*/
+void *parse (char cmdline[]) {
+	char **commands = split(cmdline);
+	int i = 0;
+	while (commands[i]) {
+		printf("%s\n", commands[i++]);
+		// Check to see if the command exists, if it does get the parseInfo struct and send it to parse_command
+	}
 }
 
 void print_info (parseInfo *info) {
@@ -41,8 +50,9 @@ void print_info (parseInfo *info) {
 void free_info (parseInfo *info) {
 }
 
-int win_main (int argc, char *argv[]) {
-	parse("This is a test");
+int main (int argc, char *argv[]) {
+	char test[] = "this is a test"; 
+	parse(test);
 	return 0;
 }
 
