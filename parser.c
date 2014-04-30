@@ -12,7 +12,8 @@
 
 /*Parses a single command which exists*/
 void parse_command(char *command) {
-	//exec and all that
+	//exec the thing
+	//do error handling, if it doesn't exist then catch that error 
 }
 
 /* Splits a string of space seperated words into an array of words*/
@@ -45,11 +46,8 @@ void parse(char *cmdline) {
 
 	while (commands[i]) {
 		printf("token:%s\n", commands[i]);
-		//check to see if each token is a thing first
-		//need like an array of all the possible commands
-		//check if it begins with a dash as well
-		//dashed tokens after a command will be sent to the
-		//command to be processed
+		//check for tokens beginnig with dash after each command
+		//these will be parameters
 		parse_command(commands[i++]);
 	}
 }
