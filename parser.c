@@ -10,10 +10,15 @@
 #include <stdlib.h>
 #include "parser.h"
 
+/*Parses a single command which exists*/
+void parse_command(char *command) {
+	//exec and all that
+}
+
 /* Splits a string of space seperated words into an array of words*/
-char **split (char str[]) {
+char **split(char str[]) {
 	char *token = strtok(str, " ");
-	char **commands = NULL;
+	char **commands = 0;
 	int count = 0, i;
 
 	while (token) {
@@ -22,37 +27,29 @@ char **split (char str[]) {
 		token = strtok(0, " ");
 	}
 
-	printf("Adding null to end...\n");
+	//Add a null entry to the end of the array
 	commands = realloc(commands, sizeof (char*)* (count + 1));
 	commands[count] = 0;
-	
-	printf("%s\n", commands[0]);
+
 	return commands;
 }
 
-/*Parses a command*/
-void parse_command (char *command, parseInfo *p) {
-}
-
-/*Parses a line of commands*/
-void *parse (char cmdline[]) {
+/*Processes a line of commands*/
+void *parse(char cmdline[]) {
 	char **commands = split(cmdline);
 	int i = 0;
+	int j;
+
 	while (commands[i]) {
-		printf("%s\n", commands[i++]);
-		// Check to see if the command exists, if it does get the parseInfo struct and send it to parse_command
+		//check to see if it's a thing first
+		//check if it begins with a dash as well
+		parse_command(commands[i++]);
 	}
 }
 
-void print_info (parseInfo *info) {
+void print_info() {
 }
 
-void free_info (parseInfo *info) {
-}
-
-int main (int argc, char *argv[]) {
-	char test[] = "this is a test"; 
-	parse(test);
-	return 0;
+void free_info() {
 }
 
