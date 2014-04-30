@@ -16,10 +16,12 @@ void parse_command(char *command) {
 }
 
 /* Splits a string of space seperated words into an array of words*/
-char **split(char str[]) {
-	char *token = strtok(str, " ");
+char **split(char *str) {
+	char *token;
 	char **commands = 0;
 	int count = 0, i;
+
+	token = strtok(str, " ");
 
 	while (token) {
 		commands = realloc(commands, sizeof(char*)* ++count);
@@ -35,14 +37,19 @@ char **split(char str[]) {
 }
 
 /*Processes a line of commands*/
-void *parse(char cmdline[]) {
-	char **commands = split(cmdline);
+void parse(char *cmdline) {
+	char **commands;
 	int i = 0;
-	int j;
+
+	commands = split(cmdline);
 
 	while (commands[i]) {
-		//check to see if it's a thing first
+		printf("token:%s\n", commands[i]);
+		//check to see if each token is a thing first
+		//need like an array of all the possible commands
 		//check if it begins with a dash as well
+		//dashed tokens after a command will be sent to the
+		//command to be processed
 		parse_command(commands[i++]);
 	}
 }
