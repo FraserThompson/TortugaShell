@@ -13,7 +13,7 @@
 #include "parser.h"
 
 /* 
-* Check to see what the command type is. Like whether it's just a single command or a physical path. 
+* Check to see what the command type is: Whether it's just a single command or a physical path. 
 * This is Windows so it does this by checking if the second character is a semicolon. Will have to be different for Linux.
 * Parameter: Command to check.
 * Return: An integer indicating whether it's a command (0) or a path (1)

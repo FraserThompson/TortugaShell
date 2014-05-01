@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 /* 
-* Prints a prompt, interprets user input
+* Prints a prompt, interprets user input.
 * Return: Line that the user inputted
 */
 char *readline() {

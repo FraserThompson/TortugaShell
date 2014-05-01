@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-/*prints the string*/
+/*Prints the string*/
 int main(int argc, char *argv[]){
 	if (argc > 0){
 		printf("%s\n", argv[1]);
