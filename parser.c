@@ -29,11 +29,13 @@ void parse_command(char *command, char **params) {
 		i++;
 	}
 	
-	// This stuff is broken, I don't even know, some stupid shit about wide chars. Putting an L before a literal string does work but I can't put an L before my char (or can i?)
-	printf("%s\n", command);
+	// Convert the char into a wide char because Windows
+	wchar_t command_w[20];
+	swprintf(command_w, 20, L"%hs", command);
+	printf("%ws\n", command_w);
 
 	// Create the process
-	if (!CreateProcess(command, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) { //Command is the wrong sort of string so it doesn't work?
+	if (!CreateProcess(command_w, params[0], NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) { //Command is the wrong sort of string so it doesn't work?
 		printf("Error! %d\n", GetLastError());
 		return;
 	}
