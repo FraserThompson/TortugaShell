@@ -16,7 +16,7 @@ char *readline() {
 
 	if (fgets(line, 20, stdin) == NULL) {
 		return 0;
-	}
+		}
 	else {
 		return line;
 	}
