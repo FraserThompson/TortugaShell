@@ -7,6 +7,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
+#include "parser.h"
 
 /* 
 * Prints a prompt, interprets user input.
@@ -18,6 +19,7 @@ char *readline() {
 	printf(">");
 
 	if (fgets(line, 100, stdin) == NULL) {
+		return 0;
 	}
 	else {
 		return line;
