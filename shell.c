@@ -10,7 +10,7 @@
 
 /*Prints a prompt, interprets user input*/
 char *readline() {
-	wchar_t *line = malloc(sizeof(wchar_t)* 20);
+	char *line = malloc(sizeof(char)* 20);
 	printf(">");
 
 	if (fgets(line, 20, stdin) == NULL) {

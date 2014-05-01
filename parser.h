@@ -4,9 +4,7 @@
 #ifndef PARSER
 #define PARSER
 
-extern void parse_command(wchar_t *, wchar_t **);
-extern void parse(wchar_t *);
-extern void print_info();
-extern void free_info();
+extern void parse_command(char *, char **);
+extern void parse(char *);
 
 #endif

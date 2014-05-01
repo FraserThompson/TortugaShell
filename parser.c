@@ -9,12 +9,11 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <tchar.h>
 #include <Windows.h>
 #include "parser.h"
 
 /*Parses a single command which exists*/
-void parse_command(wchar_t *command, wchar_t **params) {
+void parse_command(char *command, char **params) {
 	int i = 0;
 
 	// Stuff for the createprocess
@@ -30,11 +29,11 @@ void parse_command(wchar_t *command, wchar_t **params) {
 		i++;
 	}
 	
-	// This stuff is broken, I don't even know, some stupid shit about wide chars. Putting an L before a literal string does work but I can't put an L before my wchar_t (or can i?)
+	// This stuff is broken, I don't even know, some stupid shit about wide chars. Putting an L before a literal string does work but I can't put an L before my char (or can i?)
 	printf("%s\n", command);
 
 	// Create the process
-	if (!CreateProcess(command, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+	if (!CreateProcess(command, NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) { //Command is the wrong sort of string so it doesn't work?
 		printf("Error! %d\n", GetLastError());
 		return;
 	}
@@ -44,10 +43,10 @@ void parse_command(wchar_t *command, wchar_t **params) {
 }
 
 /* Splits a string of space seperated words into an array of words*/
-char **split(wchar_t *str) {
-	wchar_t *token;
-	wchar_t **commands = 0;
-	wchar_t *newline;
+char **split(char *str) {
+	char *token;
+	char **commands = 0;
+	char *newline;
 
 	int count = 0;
 
@@ -60,28 +59,28 @@ char **split(wchar_t *str) {
 			*newline = 0;
 		}
 
-		commands = realloc(commands, sizeof(wchar_t*)* ++count);
+		commands = realloc(commands, sizeof(char*)* ++count);
 		commands[count - 1] = token;
 		token = strtok(0, " ");
 	}
 
 	//Add a null entry to the end of the array
-	commands = realloc(commands, sizeof (wchar_t*)* (count + 1));
+	commands = realloc(commands, sizeof (char*)* (count + 1));
 	commands[count] = 0;
 
 	return commands;
 }
 
 /*Processes a line of commands*/
-void parse(wchar_t *cmdline) {
-	wchar_t **commands;
-	wchar_t **params;
+void parse(char *cmdline) {
+	char **commands;
+	char **params;
 	int i = 0;
 	int j = 0;
 	int index = 0;
 
 	commands = split(cmdline);
-	params = malloc((sizeof(wchar_t) * 5) * 20);
+	params = malloc((sizeof(char) * 5) * 20);
 
 	// While there are tokens left...
 	while (commands[i]) {
@@ -98,7 +97,7 @@ void parse(wchar_t *cmdline) {
 			}
 
 			// Add null value
-			params = realloc(params, sizeof (wchar_t*)* (index + 1));
+			params = realloc(params, sizeof (char*)* (index + 1));
 			params[index] = 0;
 
 			// Parse the command and params
@@ -109,10 +108,3 @@ void parse(wchar_t *cmdline) {
 		i++;
 	}
 }
-
-void print_info() {
-}
-
-void free_info() {
-}
-
