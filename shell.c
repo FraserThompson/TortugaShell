@@ -6,11 +6,11 @@
 */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
-
+#include <stdlib.h>
 
 /*Prints a prompt, interprets user input*/
 char *readline() {
-	char *line = malloc(sizeof(char) * 20);
+	wchar_t *line = malloc(sizeof(wchar_t)* 20);
 	printf(">");
 
 	if (fgets(line, 20, stdin) == NULL) {
