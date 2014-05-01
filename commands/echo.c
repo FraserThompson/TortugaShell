@@ -9,6 +9,11 @@
 #include <stdio.h>
 
 /*prints the string*/
-void echoprint(char* instring){
-	printf("%s", instring);
+int main(int argc, char *argv[]){
+	if (argc > 0){
+		printf("%s\n", argv[1]);
+		return 1;
+	}
+	printf("Nothing to say!");
+	return 0;
 }
