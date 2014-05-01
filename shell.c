@@ -9,14 +9,18 @@
 #include <stdlib.h>
 #include "parser.h"
 
-/*Prints a prompt, interprets user input*/
+/* 
+* Prints a prompt, interprets user input
+* Return: Line that the user inputted
+*/
 char *readline() {
-	char *line = malloc(sizeof(char)* 20);
+	// line can be up to 100 chars
+	char *line = malloc(sizeof(char)* 100);
 	printf(">");
 
-	if (fgets(line, 20, stdin) == NULL) {
+	if (fgets(line, 100, stdin) == NULL) {
 		return 0;
-		}
+	}
 	else {
 		return line;
 	}
