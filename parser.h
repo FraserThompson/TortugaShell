@@ -1,5 +1,5 @@
 /* parser.h
- * Header file for parser.c
+ * Header file for parser.c.
  */
 #ifndef PARSER
 #define PARSER
