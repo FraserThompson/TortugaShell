@@ -5,15 +5,17 @@
  *      Author: Fraser
  */
 #define _CRT_SECURE_NO_WARNINGS
-
 #include <stdio.h>
+#include <stdlib.h>
 
 /*Prints the string*/
 int main(int argc, char *argv[]){
-	if (argc > 0){
-		printf("%s\n", argv[1]);
-		return 1;
+
+	if ((strcmp(argv[0], "-help") == 0) || (strcmp(argv[0], "-h") == 0)) {
+		printf("Prints user input to the terminal. If no input prints location it's running from.\n");
+		return EXIT_SUCCESS;
 	}
-	printf("Nothing to say!");
-	return 0;
+
+	printf("%s\n", argv[0]);
+	return EXIT_SUCCESS;
 }
