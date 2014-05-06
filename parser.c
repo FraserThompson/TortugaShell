@@ -82,7 +82,7 @@ int create_process_win(char *command, char *params) {
 	return error;
 }
 
-/* 
+/* -----CROSS PLATFORM----
 * Parses a single command
 * Parameters: Command to parse, array of params, type of command)
 */
@@ -106,6 +106,7 @@ void parse_command(char *command, char **params, int type) {
 
 	// Spawn the command
 	error = create_process_win(command_dir, params);
+
 	if (error == 0) {
 		return;
 	}
@@ -118,7 +119,7 @@ void parse_command(char *command, char **params, int type) {
 				return;
 			}
 		}
-		printf("%s does not exist.\n", command);
+		printf("'%s' does not exist.\n", command);
 	}
 }
 

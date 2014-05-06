@@ -33,5 +33,5 @@ int main(int argc, char *argv[]) {
 	while (1){
 		parse(readline());
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
