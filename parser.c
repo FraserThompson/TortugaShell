@@ -33,10 +33,12 @@ int command_type(char *command){
 wchar_t *convert_to_wchar(char *input){
 	size_t len = strlen(input) + 1;
 	wchar_t *command_w = malloc(sizeof(wchar_t) * len);
+
 	if (command_w == NULL){
 		fprintf(stderr, "Failed to allocate memory.\n");
 		return -1;
 	}
+
 	swprintf(command_w, len, L"%hs", input);
 	return command_w;
 }
@@ -51,6 +53,11 @@ char *concat_string(char *first, char *second){
 	size_t second_len = strlen(second) + 1;
 	char *result = (char*)malloc(first_len + second_len);
 
+	if (result == NULL){
+		fprintf(stderr, "Failed to allocate memory.\n");
+		return -1;
+	}
+
 	strncpy(result, first, first_len);
 	strncat(result, second, second_len);
 
@@ -62,8 +69,10 @@ char *concat_string(char *first, char *second){
 * Parameters: Location of process to spawn
 * Return: Error code, 0 if success.
 */
-int create_process_win(char *command, char *params) {
+int create_process_win(char *command, char **params) {
 	int error = 0;
+	char *param = params[0];
+	wchar_t param_wchar = NULL;
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -71,7 +80,11 @@ int create_process_win(char *command, char *params) {
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 
-	if (!CreateProcess(convert_to_wchar(command), params, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
+	if (param){
+		param_wchar = convert_to_wchar(param);
+	}
+
+	if (!CreateProcess(convert_to_wchar(command), param_wchar, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
 		error = GetLastError();
 	}
 
@@ -80,6 +93,14 @@ int create_process_win(char *command, char *params) {
 	CloseHandle(pi.hThread);
 
 	return error;
+}
+
+/* -------UNIX------
+* Creates a process in Unix/Linux.
+* Parameters: Location of process to spawn
+* Return: Error code, 0 if success.
+*/
+int create_process_unix(char *command, char **params) {
 }
 
 /* -----CROSS PLATFORM----
@@ -113,7 +134,7 @@ void parse_command(char *command, char **params, int type) {
 
 	// If the command isn't found
 	if (error == 2 || error == 3){
-		// Check the CWD if it's a command
+		// Try again in the CWD
 		if (type == 0){
 			if (create_process_win(command, params) == 0){
 				return;
@@ -169,7 +190,7 @@ void parse(char *cmdline) {
 	int index = 0;
 
 	commands = split(cmdline);
-	params = malloc((sizeof(char) * 5) * 20);
+	params = malloc((sizeof(char) * 5) * 20); //malloc this properly
 
 	// While there are tokens left...
 	while (commands[i]) {
@@ -194,7 +215,6 @@ void parse(char *cmdline) {
 			// Parse the command and params
 			parse_command(commands[i], params, type);
 		}
-
 		// Move to next token
 		i++;
 	}
