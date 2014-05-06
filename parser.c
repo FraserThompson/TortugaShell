@@ -12,7 +12,7 @@
 #include <Windows.h>
 #include "parser.h"
 
-/* 
+/* -----CROSS PLATFORM----
 * Check to see what the command type is: Whether it's just a single command or a physical path. 
 * This is Windows so it does this by checking if the second character is a semicolon. Will have to be different for Linux.
 * Parameter: Command to check.
@@ -25,16 +25,61 @@ int command_type(char *command){
 	return 0;
 }
 
-/*
+/* -------WINDOWS------
 * Converts a normal array of char into a wide char because Windows
 * Parameter: String to convert
 * Return: Wchar version of input
 */
 wchar_t *convert_to_wchar(char *input){
-	// fix this so it's malloc'd dynamically
-	wchar_t *command_w[101];
-	swprintf(command_w, 100, L"%hs", input);
+	size_t len = strlen(input) + 1;
+	wchar_t *command_w = malloc(sizeof(wchar_t) * len);
+	if (command_w == NULL){
+		fprintf(stderr, "Failed to allocate memory.\n");
+		return -1;
+	}
+	swprintf(command_w, len, L"%hs", input);
 	return command_w;
+}
+
+/* -----CROSS PLATFORM----
+* Concatenates two strings.
+* Parameter: First string, second string.
+* Return: Resulting concatenation.
+*/
+char *concat_string(char *first, char *second){
+	size_t first_len = strlen(first) + 1;
+	size_t second_len = strlen(second) + 1;
+	char *result = (char*)malloc(first_len + second_len);
+
+	strncpy(result, first, first_len);
+	strncat(result, second, second_len);
+
+	return result;
+}
+
+/* -------WINDOWS------
+* Creates a process in Windows.
+* Parameters: Location of process to spawn
+* Return: Error code, 0 if success.
+*/
+int create_process_win(char *command, char *params) {
+	int error = 0;
+
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+
+	if (!CreateProcess(convert_to_wchar(command), params, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
+		error = GetLastError();
+	}
+
+	WaitForSingleObject(pi.hProcess, INFINITE);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+
+	return error;
 }
 
 /* 
@@ -43,43 +88,41 @@ wchar_t *convert_to_wchar(char *input){
 */
 void parse_command(char *command, char **params, int type) {
 	int i = 0;
-	char *command_dir = "";
-	size_t command_len = strlen(command) + 1;
+	int error = 0;
+	char *command_dir = command;
+	char *command_exe = command;
+	char *dir = "./commands/";
+	char *exe = ".exe";
 
-	// Stuff for CreateProcess
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);
-	ZeroMemory(&pi, sizeof(pi));
-	
-	// If it's a single command...
+	// Processing for single command
 	if (type == 0) {
-		// Create the path to check the commands subdirectory first
-		char *dir = "./commands/";
-		size_t dir_len = strlen(dir) + 1;
-		command_dir = (char*)malloc(dir_len + command_len);
-		strncpy(command_dir, dir, dir_len);
-		strncat(command_dir, command, command_len);
+		// Add .exe on the end if not there already
+		if (!strstr(command, exe)){
+			command_exe = concat_string(command, exe);
+		}
+		// Add ./commands/ to the beginning so we can check there first
+		command_dir = concat_string(dir, command_exe);
 	}
 
-	// If it's a full path...
-	else if (type == 1) {
-		command_dir = command;
-	}
-
-	// Spawn the process!
-	if (!CreateProcess(convert_to_wchar(command_dir), params[0], NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-		printf("Error! %d\n", GetLastError());
-		// if the error is 2 or 3 (not found) and type is 0 then check in the cwd instead of ./commands/ imo
+	// Spawn the command
+	error = create_process_win(command_dir, params);
+	if (error == 0) {
 		return;
 	}
-	WaitForSingleObject(pi.hProcess, INFINITE);
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
+
+	// If the command isn't found
+	if (error == 2 || error == 3){
+		// Check the CWD if it's a command
+		if (type == 0){
+			if (create_process_win(command, params) == 0){
+				return;
+			}
+		}
+		printf("%s does not exist.\n", command);
+	}
 }
 
-/* 
+/* -----CROSS PLATFORM----
 * Splits a string of space seperated words into an array of words
 * Parameter: String to split
 * Return: Array of words
@@ -112,7 +155,7 @@ char **split(char *str) {
 	return commands;
 }
 
-/* 
+/* -----CROSS PLATFORM----
 * Processes a line of commands
 * Parameter: Line to process
 */

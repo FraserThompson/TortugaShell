@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include "parser.h"
 
-/* 
+/* -----CROSS PLATFORM----
 * Prints a prompt, interprets user input.
 * Return: Line that the user inputted
 */
@@ -26,6 +26,9 @@ char *readline() {
 	}
 }
 
+/* 
+* Main loop. Reads a line and parses it.
+*/
 int main(int argc, char *argv[]) {
 	while (1){
 		parse(readline());
