@@ -72,7 +72,8 @@ char *concat_string(char *first, char *second){
 int create_process_win(char *command, char **params) {
 	int error = 0;
 	char *param = params[0];
-	wchar_t param_wchar = NULL;
+	wchar_t *param_wchar = NULL;
+	wchar_t *command_wchar = NULL;
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -84,7 +85,11 @@ int create_process_win(char *command, char **params) {
 		param_wchar = convert_to_wchar(param);
 	}
 
-	if (!CreateProcess(convert_to_wchar(command), param_wchar, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
+	if (command){
+		command_wchar = convert_to_wchar(command);
+	}
+
+	if (!CreateProcess(command_wchar, param_wchar, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
 		error = GetLastError();
 	}
 
