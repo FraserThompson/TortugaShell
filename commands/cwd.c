@@ -29,6 +29,11 @@ char *getCWD_unix(){
 *Returns the path to the cwd
 */
 int main(int argc, char *argv[]){
+	if ((strcmp(argv[0], "-help") == 0) || (strcmp(argv[0], "-h") == 0)) {
+		printf("Displays the current working directory.\n");
+		return EXIT_SUCCESS;
+	}
+
 	char cwd[1024] = "";
 	getCWD_win(cwd);
 	printf("%ws\n", cwd);
