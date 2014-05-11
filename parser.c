@@ -9,8 +9,10 @@
 #include <wchar.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <Windows.h>
 #include "parser.h"
+#include "process_mgmt.h"
 
 /* -----CROSS PLATFORM----
 * Check to see what the command type is: Whether it's just a single command or a physical path. 
@@ -18,29 +20,11 @@
 * Parameter: Command to check.
 * Return: An integer indicating whether it's a command (0) or a path (1)
 */
-int command_type(char *command){
+static int command_type(char *command){
 	if (command[1] == ':'){
 		return 1;
 	}
 	return 0;
-}
-
-/* -------WINDOWS------
-* Converts a normal array of char into a wide char because Windows
-* Parameter: String to convert
-* Return: Wchar version of input
-*/
-wchar_t *convert_to_wchar(char *input){
-	size_t len = strlen(input) + 1;
-	wchar_t *command_w = malloc(sizeof(wchar_t) * len);
-
-	if (command_w == NULL){
-		fprintf(stderr, "Failed to allocate memory.\n");
-		return -1;
-	}
-
-	swprintf(command_w, len, L"%hs", input);
-	return command_w;
 }
 
 /* -----CROSS PLATFORM----
@@ -64,49 +48,39 @@ char *concat_string(char *first, char *second){
 	return result;
 }
 
-/* -------WINDOWS------
-* Creates a process in Windows.
-* Parameters: Location of process to spawn
-* Return: Error code, 0 if success.
+/* -----CROSS PLATFORM----
+* Splits a string of space seperated words into an array of words
+* Parameter: String to split
+* Return: Array of words
 */
-int create_process_win(char *command, char **params) {
-	int error = 0;
-	char *param = params[0];
-	wchar_t *param_wchar = NULL;
-	wchar_t *command_wchar = NULL;
+char **split(char *str) {
+	char *token;
+	char **commands = 0;
+	char *newline;
 
-	STARTUPINFO si;
-	PROCESS_INFORMATION pi;
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);
-	ZeroMemory(&pi, sizeof(pi));
+	int count = 0;
 
-	if (param){
-		param_wchar = convert_to_wchar(param);
+	token = strtok(str, " ");
+
+	while (token) {
+		// Remove newline character
+		newline = strchr(token, '\n');
+		if (newline) {
+			*newline = 0;
+		}
+
+		commands = realloc(commands, sizeof(char*)* ++count);
+		commands[count - 1] = token;
+		token = strtok(0, " ");
 	}
 
-	if (command){
-		command_wchar = convert_to_wchar(command);
-	}
+	//Add a null entry to the end of the array
+	commands = realloc(commands, sizeof (char*)* (count + 1));
+	commands[count] = 0;
 
-	if (!CreateProcess(command_wchar, param_wchar, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
-		error = GetLastError();
-	}
-
-	WaitForSingleObject(pi.hProcess, INFINITE);
-	CloseHandle(pi.hProcess);
-	CloseHandle(pi.hThread);
-
-	return error;
+	return commands;
 }
 
-/* -------UNIX------
-* Creates a process in Unix/Linux.
-* Parameters: Location of process to spawn
-* Return: Error code, 0 if success.
-*/
-int create_process_unix(char *command, char **params) {
-}
 
 /* -----CROSS PLATFORM----
 * Parses a single command
@@ -150,39 +124,6 @@ void parse_command(char *command, char **params, int type) {
 }
 
 /* -----CROSS PLATFORM----
-* Splits a string of space seperated words into an array of words
-* Parameter: String to split
-* Return: Array of words
-*/
-char **split(char *str) {
-	char *token;
-	char **commands = 0;
-	char *newline;
-
-	int count = 0;
-
-	token = strtok(str, " ");
-
-	while (token) {
-		// Remove newline character
-		newline = strchr(token, '\n');
-		if (newline) {
-			*newline = 0;
-		}
-
-		commands = realloc(commands, sizeof(char*)* ++count);
-		commands[count - 1] = token;
-		token = strtok(0, " ");
-	}
-
-	//Add a null entry to the end of the array
-	commands = realloc(commands, sizeof (char*)* (count + 1));
-	commands[count] = 0;
-
-	return commands;
-}
-
-/* -----CROSS PLATFORM----
 * Processes a line of commands
 * Parameter: Line to process
 */
@@ -199,8 +140,7 @@ void parse(char *cmdline) {
 
 	// While there are tokens left...
 	while (commands[i]) {
-
-		// If a token isn't a parameter
+		/*// If a token isn't a parameter
 		if (commands[i][0] != '-'){
 			// Get the type
 			type = command_type(commands[i]);
@@ -221,6 +161,9 @@ void parse(char *cmdline) {
 			parse_command(commands[i], params, type);
 		}
 		// Move to next token
-		i++;
+		i++;*/
+
+		type = command_type(commands[i]);
+		parse_command(commands[0], params, type);
 	}
 }
