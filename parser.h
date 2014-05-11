@@ -4,9 +4,9 @@
 #ifndef PARSER
 #define PARSER
 
-extern void parse_command(char *, char **);
+extern void parse_command(char *, char *, int);
 extern void parse(char *);
 extern char **split(char *);
-extern char *concat_string(char *, char *);
+extern char *concat_string(char *, char *, char*);
 
 #endif

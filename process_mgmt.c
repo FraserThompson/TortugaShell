@@ -23,7 +23,7 @@ static wchar_t *convert_to_wchar(char *input){
 
 	if (command_w == NULL){
 		fprintf(stderr, "Failed to allocate memory.\n");
-		return -1;
+		exit(EXIT_FAILURE);
 	}
 
 	swprintf(command_w, len, L"%hs", input);
@@ -35,9 +35,8 @@ static wchar_t *convert_to_wchar(char *input){
 * Parameters: Location of process to spawn
 * Return: Error code, 0 if success.
 */
-int create_process_win(char *command, char **params) {
+int create_process_win(char *command, char *params) {
 	int error = 0;
-	char *param = params[0];
 	wchar_t *param_wchar = NULL;
 	wchar_t *command_wchar = NULL;
 
@@ -47,8 +46,8 @@ int create_process_win(char *command, char **params) {
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
 
-	if (param){
-		param_wchar = convert_to_wchar(param);
+	if (params){
+		param_wchar = convert_to_wchar(params);
 	}
 
 	if (command){

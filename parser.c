@@ -5,6 +5,7 @@
  *      Author: Fraser
  */
 #define _CRT_SECURE_NO_WARNINGS
+#define DEBUG 1
 
 #include <wchar.h>
 #include <stdlib.h>
@@ -21,30 +22,49 @@
 * Return: An integer indicating whether it's a command (0) or a path (1)
 */
 static int command_type(char *command){
+	if (DEBUG){ printf("COMMAND_TYPE: Input: %s\n", command); }
 	if (command[1] == ':'){
+		if (DEBUG){ printf("COMMAND_TYPE: It's a path.\n", command); }
 		return 1;
 	}
+	if (DEBUG){ printf("COMMAND_TYPE: It's a command.\n", command); }
 	return 0;
 }
 
 /* -----CROSS PLATFORM----
-* Concatenates two strings.
-* Parameter: First string, second string.
+* Concatenates up to three strings.
+* Parameter: First string, second string, third string.
 * Return: Resulting concatenation.
 */
-char *concat_string(char *first, char *second){
+char *concat_string(char *first, char *second, char *third){
 	size_t first_len = strlen(first) + 1;
 	size_t second_len = strlen(second) + 1;
-	char *result = (char*)malloc(first_len + second_len);
+	size_t third_len = 0;
 
-	if (result == NULL){
-		fprintf(stderr, "Failed to allocate memory.\n");
-		return -1;
+	if (DEBUG){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
+	if (third){
+		if (DEBUG){ printf("CONCAT_STRING: Input: %s\n", third); }
+		third_len = strlen(third) + 1;
 	}
 
+	char *result = (char*)malloc(first_len + second_len + third_len);
+
+	if (result == NULL){
+		fprintf(stderr, "CONCAT_STRING: Failed to allocate memory.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (DEBUG){ printf("CONCAT_STRING: Adding first: %s\n", first); }
 	strncpy(result, first, first_len);
+	if (DEBUG){ printf("CONCAT_STRING: Adding second: %s\n", second); }
 	strncat(result, second, second_len);
 
+	if (third){
+		if (DEBUG) { printf("CONCAT_STRING: Adding third: %s\n", third);  }
+		strncat(result, third, third_len);
+	}
+
+	if (DEBUG) { printf("CONCAT_STRING: Returning: %s\n", result); }
 	return result;
 }
 
@@ -57,12 +77,15 @@ char **split(char *str) {
 	char *token;
 	char **commands = 0;
 	char *newline;
-
 	int count = 0;
 
 	token = strtok(str, " ");
 
+	if (DEBUG){ printf("SPLIT: Input: %s\n", str); }
+
 	while (token) {
+		if (DEBUG){ printf("SPLIT: Working on token: %s\n", token); }
+
 		// Remove newline character
 		newline = strchr(token, '\n');
 		if (newline) {
@@ -70,14 +93,25 @@ char **split(char *str) {
 		}
 
 		commands = realloc(commands, sizeof(char*)* ++count);
+		if (commands == NULL){
+			printf("SPLIT: Error during realloc!");
+			exit(EXIT_FAILURE);
+		}
 		commands[count - 1] = token;
 		token = strtok(0, " ");
+		if (DEBUG){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
 	//Add a null entry to the end of the array
 	commands = realloc(commands, sizeof (char*)* (count + 1));
-	commands[count] = 0;
 
+	if (commands == NULL){
+		fprintf(stderr, "SPLIT: Error during realloc!");
+		exit(EXIT_FAILURE);
+	}
+
+	commands[count] = 0;
+	if (DEBUG){ printf("SPLIT: Returning\n"); }
 	return commands;
 }
 
@@ -86,25 +120,28 @@ char **split(char *str) {
 * Parses a single command
 * Parameters: Command to parse, array of params, type of command)
 */
-void parse_command(char *command, char **params, int type) {
-	int i = 0;
+void parse_command(char *command, char *params, int type) {
 	int error = 0;
 	char *command_dir = command;
 	char *command_exe = command;
 	char *dir = "./commands/";
 	char *exe = ".exe";
+	if (DEBUG){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
+	//do some stuff here so there's an array of dirs to search including %path%
 
 	// Processing for single command
 	if (type == 0) {
 		// Add .exe on the end if not there already
 		if (!strstr(command, exe)){
-			command_exe = concat_string(command, exe);
+			command_exe = concat_string(command, exe, NULL);
 		}
 		// Add ./commands/ to the beginning so we can check there first
-		command_dir = concat_string(dir, command_exe);
+		command_dir = concat_string(dir, command_exe, NULL);
 	}
 
+
 	// Spawn the command
+	if (DEBUG){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
 	error = create_process_win(command_dir, params);
 
 	if (error == 0) {
@@ -129,41 +166,29 @@ void parse_command(char *command, char **params, int type) {
 */
 void parse(char *cmdline) {
 	char **commands;
-	char **params;
+	char *params = NULL;
 	int type;
-	int i = 0;
-	int j = 0;
-	int index = 0;
+	int i = 2;
 
+	if (DEBUG){ printf("PARSE: Input: %s\n", cmdline); }
 	commands = split(cmdline);
-	params = malloc((sizeof(char) * 5) * 20); //malloc this properly
+	if (DEBUG){ printf("PARSE: First command: %s\n", commands[0]); }
+	type = command_type(commands[0]);
 
-	// While there are tokens left...
-	while (commands[i]) {
-		/*// If a token isn't a parameter
-		if (commands[i][0] != '-'){
-			// Get the type
-			type = command_type(commands[i]);
-			// Check the following tokens for parameters
-			j = i + 1;
-			index = 0;
-			while (commands[j] && commands[j][0] == '-') {
-				params[index] = commands[j];
-				index++;
-				j++;
-			}
-
-			// Add null value
-			params = realloc(params, sizeof (char*)* (index + 1));
-			params[index] = 0;
-
-			// Parse the command and params
-			parse_command(commands[i], params, type);
+	// If there's more than just one thing
+	if (commands[1]){
+		if (DEBUG){ printf("PARSE: Adding parameter: %s\n", commands[1]); }
+		params = (char*)malloc(strlen(commands[1] + 1));
+		if (params == NULL){
+			fprintf(stderr, "PARSE: Error during malloc!");
 		}
-		// Move to next token
-		i++;*/
-
-		type = command_type(commands[i]);
-		parse_command(commands[0], params, type);
+		strcpy(params, commands[1]);
+		
+		while (commands[i]){
+			if (DEBUG){ printf("PARSE: Adding parameter: %s\n", commands[i]); }
+			params = concat_string(params, " ", commands[i]);
+			i++;
+		}
 	}
+	parse_command(commands[0], params, type);
 }

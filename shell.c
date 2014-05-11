@@ -14,12 +14,13 @@
 * Return: Line that the user inputted
 */
 char *readline() {
-	// line can be up to 100 chars
-	char *line = malloc(sizeof(char)* 100);
+	// line can be up to 300 chars
+	char *line = malloc(sizeof(char)* 300);
 	printf(">");
 
-	if (fgets(line, 100, stdin) == NULL) {
-		return 0;
+	if (fgets(line, 300, stdin) == NULL) {
+		fprintf(stderr, "READLINE: Error reading line!");
+		exit(EXIT_FAILURE);
 	}
 	else {
 		return line;
