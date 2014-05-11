@@ -32,7 +32,7 @@ static wchar_t *convert_to_wchar(char *input){
 
 /* -------WINDOWS------
 * Creates a process in Windows.
-* Parameters: Location of process to spawn
+* Parameters: Location of process to spawn, parameters
 * Return: Error code, 0 if success.
 */
 int create_process_win(char *command, char *params) {

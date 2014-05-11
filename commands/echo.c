@@ -3,13 +3,14 @@
  *
  *  Created on: 14/04/2014
  *      Author: Fraser
+ *
+ *  Echo's the input args.
  */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-/*Prints the string*/
 int main(int argc, char *argv[]){
 	int i = 0;
 

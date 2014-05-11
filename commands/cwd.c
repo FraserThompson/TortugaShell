@@ -3,6 +3,8 @@
 *
 *  Created on: 6/05/2014
 *      Author: Fraser
+*
+*  Returns the path to the current working directory.
 */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>

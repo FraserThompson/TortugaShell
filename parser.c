@@ -3,6 +3,8 @@
  *
  *  Created on: 14/04/2014
  *      Author: Fraser
+ *
+ * Contains methods which help with parsing commands.
  */
 #define _CRT_SECURE_NO_WARNINGS
 #define DEBUG 0
@@ -33,7 +35,7 @@ static int command_type(char *command){
 
 /* -----CROSS PLATFORM----
 * Concatenates up to three strings.
-* Parameter: First string, second string, third string.
+* Parameter: First string, second string, third string (or null).
 * Return: Resulting concatenation.
 */
 char *concat_string(char *first, char *second, char *third){
@@ -118,7 +120,7 @@ char **split(char *str) {
 
 /* -----CROSS PLATFORM----
 * Parses a single command
-* Parameters: Command to parse, array of params, type of command)
+* Parameters: Command to parse, parameters string, type of command)
 */
 void parse_command(char *command, char *params, int type) {
 	int error = 0;
@@ -161,7 +163,7 @@ void parse_command(char *command, char *params, int type) {
 }
 
 /* -----CROSS PLATFORM----
-* Processes a line of commands
+* Processes a commandline
 * Parameter: Line to process
 */
 void parse(char *cmdline) {
