@@ -5,7 +5,7 @@
  *      Author: Fraser
  */
 #define _CRT_SECURE_NO_WARNINGS
-#define DEBUG 1
+#define DEBUG 0
 
 #include <wchar.h>
 #include <stdlib.h>
