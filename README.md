@@ -3,55 +3,17 @@
 This will eventually be a shell. This documentation should be updated as things are added.
 
 
-
-parser.h:
-  
-	init_info(parseInfo *p)
-    
-		Initialize struct:
-          
-			Name
-          
-			Usage
-          
-			Type
-          
-  
-	parse_command(char * command, struct commandType *comm)
-    
-		Perform syntax highlighting, call command's associated c file
-  
-	parseInfo *parse (char *cmdline)
-    
-		Parsing multiple commands, redirection, piping
-  
-	print_info (parseInfo *info)
-  
-	free_info (parseInfo *info)
-  
+shell.c:
+	Contains the main loop which prints an arrow and takes user input.
 
 
 parser.c:
+	parse_command(char *, char *, int): Processes a line of commands.
+	parse(char *): Parses an individual command.
+	char **split(char *): Splits a string into an array of words.
+	char *concat_string(char *, char *, char*): Joins up to three strings.
 
 
-
-shell.h:
-
-
-
-shell.c:
-
-
-
-commands.h:
-  
-	echo
-  
-	...
-  
-
-/commands/:
-  
-	echo.c
-  
-	...
+process_mgmt.c:
+	int create_process_unix(char *command, char *params): Creates a process under unix/linux.
+	int create_process_win(char *command, char *params): Creates a process under windows.
