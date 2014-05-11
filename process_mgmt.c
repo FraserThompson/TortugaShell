@@ -70,5 +70,5 @@ int create_process_win(char *command, char *params) {
 * Parameters: Location of process to spawn
 * Return: Error code, 0 if success.
 */
-int create_process_unix(char *command, char **params) {
+int create_process_unix(char *command, char *params) {
 }

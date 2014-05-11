@@ -13,7 +13,7 @@
 * Prints a prompt, interprets user input.
 * Return: Line that the user inputted
 */
-char *readline() {
+static char *readline() {
 	// line can be up to 300 chars
 	char *line = malloc(sizeof(char)* 300);
 	printf(">");
