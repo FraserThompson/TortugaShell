@@ -16,9 +16,9 @@ int main(int argc, char *argv[]){
 		return EXIT_SUCCESS;
 	}
 
-	createdfile = fopen(argv[0], "rw+");
+	createdfile = fopen(argv[0], "w+");
 
-	printf("File %s has been created.", argv[0]);
+	printf("File %s has been created.\n", argv[0]);
 	fclose(createdfile);
 
 	return 0;
