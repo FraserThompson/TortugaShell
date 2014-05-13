@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <Windows.h>
 
+#ifdef WINDOWS
+#elif LINUX
+#elif OSX
+#endif
 
 /* -------WINDOWS------
 * Returns the CWD in windows

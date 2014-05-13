@@ -12,8 +12,13 @@
 #include <stdio.h>
 #include <Windows.h>
 
+#ifdef WINDOWS
+#elif LINUX
+#elif OSX
+#endif
+
 /* -------WINDOWS------
-* Converts a normal array of char into a wide char because Windows
+* Converts a normal array of char into an array of wide char because Windows
 * Parameter: String to convert
 * Return: Wchar version of input
 */
@@ -30,6 +35,11 @@ static wchar_t *convert_to_wchar(char *input){
 	return command_w;
 }
 
+/* -------WINDOWS------
+* Converts an array of widechar into an array of char because Windows
+* Parameter: String to convert
+* Return: Wchar version of input
+*/
 static char *convert_to_char(wchar_t *input){
 	size_t len = wcslen(input) + 1;
 	printf("CONVERT_TO_CHAR: Input - %ws\n", input);
