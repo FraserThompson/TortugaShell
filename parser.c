@@ -8,6 +8,7 @@
  */
 #define _CRT_SECURE_NO_WARNINGS
 #define DEBUG 0
+#define NUM_DIRS 3
 
 #include <wchar.h>
 #include <stdlib.h>
@@ -124,42 +125,44 @@ char **split(char *str) {
 */
 void parse_command(char *command, char *params, int type) {
 	int error = 0;
+	int i = 0;
 	char *command_dir = command;
 	char *command_exe = command;
-	char *dir = "./commands/";
+	char *dirs[NUM_DIRS] = { "./commands/", concat_string(get_system_dir_win(), "\\", NULL), "./"};
 	char *exe = ".exe";
 	if (DEBUG){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
-	//do some stuff here so there's an array of dirs to search including %path%
 
-	// Processing for single command
+	// Processing a relative path
 	if (type == 0) {
+
 		// Add .exe on the end if not there already
 		if (!strstr(command, exe)){
 			command_exe = concat_string(command, exe, NULL);
 		}
-		// Add ./commands/ to the beginning so we can check there first
-		command_dir = concat_string(dir, command_exe, NULL);
-	}
 
-
-	// Spawn the command
-	if (DEBUG){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
-	error = create_process_win(command_dir, params);
-
-	if (error == 0) {
-		return;
-	}
-
-	// If the command isn't found
-	if (error == 2 || error == 3){
-		// Try again in the CWD
-		if (type == 0){
-			if (create_process_win(command, params) == 0){
+		// Check for the desired command in all dirs until found
+		while (i != NUM_DIRS){
+			printf("%i\n", i);
+			command_dir = concat_string(dirs[i], command_exe, NULL);
+			i++;
+			if (DEBUG){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
+			error = create_process_win(command_dir, params);
+			if (error == 0) {
 				return;
 			}
 		}
-		printf("'%s' does not exist.\n", command);
+
 	}
+
+	// Processing a full path
+	if (type == 1){
+		error = create_process_win(command, params);
+		if (error = 0) {
+			return;
+		}
+	}
+
+	printf("'%s' does not exist.\n", command);
 }
 
 /* -----CROSS PLATFORM----

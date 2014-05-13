@@ -30,6 +30,30 @@ static wchar_t *convert_to_wchar(char *input){
 	return command_w;
 }
 
+static char *convert_to_char(wchar_t *input){
+	size_t len = wcslen(input) + 1;
+	printf("CONVERT_TO_CHAR: Input - %ws\n", input);
+	char *command_c = malloc(sizeof(char)* len);
+
+	if (command_c == NULL){
+		fprintf(stderr, "Failed to allocate memory.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	wcstombs(command_c, input, len);
+	printf("CONVERT_TO_CHAR: Output - %s\n", command_c);
+	return command_c;
+}
+
+char *get_system_dir_win(){
+	size_t size = 100;
+	wchar_t *buffer[100];
+	if (!GetSystemDirectory(buffer, size)){
+		printf("GET_SYSTEM_DIR: Error getting system dir!");
+	}
+	return convert_to_char(buffer);
+}
+
 /* -------WINDOWS------
 * Creates a process in Windows.
 * Parameters: Location of process to spawn, parameters
