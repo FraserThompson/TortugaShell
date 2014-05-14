@@ -7,6 +7,6 @@
 
 extern int create_process_win(char *, char *);
 extern int create_process_unix(char *, char *);
-extern char *get_system_dir_win();
+extern char *get_system_dir_win(void);
 
 #endif

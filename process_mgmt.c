@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <Windows.h>
+#include <string.h>
 
 #ifdef WINDOWS
 #elif LINUX
@@ -55,9 +56,9 @@ static char *convert_to_char(wchar_t *input){
 	return command_c;
 }
 
-char *get_system_dir_win(){
+char *get_system_dir_win(void){
 	size_t size = 100;
-	wchar_t *buffer[100];
+	wchar_t buffer[100];
 	if (!GetSystemDirectory(buffer, size)){
 		printf("GET_SYSTEM_DIR: Error getting system dir!");
 	}
@@ -105,4 +106,6 @@ int create_process_win(char *command, char *params) {
 * Return: Error code, 0 if success.
 */
 int create_process_unix(char *command, char *params) {
+	return 0;
+
 }

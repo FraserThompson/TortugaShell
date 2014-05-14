@@ -157,7 +157,7 @@ void parse_command(char *command, char *params, int type) {
 	// Processing a full path
 	if (type == 1){
 		error = create_process_win(command, params);
-		if (error = 0) {
+		if (error == 0) {
 			return;
 		}
 	}

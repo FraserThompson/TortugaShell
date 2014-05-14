@@ -23,12 +23,14 @@ void *getCWD_win(char *cwd){
 	if (!GetCurrentDirectory(1024, cwd)) {
 		printf("Error getting current directory! %s\n", GetLastError());
 	}
+	return 0;
 }
 
 /* -------UNIX------
 * Return the CWD in Unix/Linux
 */
 char *getCWD_unix(){
+	return NULL;
 }
 
 /* -----CROSS PLATFORM----
