@@ -125,7 +125,7 @@ void parse_command(char *command, char *params, int type) {
 	int i = 0;
 	char *command_dir = command;
 	char *command_exe = command;
-	char *system_dir = concat_string(get_system_dir_win(), "\\", NULL);
+	char *system_dir = concat_string(get_system_dir(), "\\", NULL);
 	char *dirs[NUM_DIRS] = { "./commands/", system_dir, "./"};
 	char *exe = ".exe";
 	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
