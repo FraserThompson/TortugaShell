@@ -62,7 +62,7 @@ char *get_system_dir_win(void){
 	size_t size = 100;
 	wchar_t buffer[100];
 	if (!GetSystemDirectory(buffer, size)){
-		printf("GET_SYSTEM_DIR: Error getting system dir!";)
+		printf("GET_SYSTEM_DIR: Error getting system dir!");
 		exit(EXIT_FAILURE);
 	}
 	return convert_to_char(buffer);
@@ -111,7 +111,7 @@ int create_process_win(char *command, char *params) {
 		command_wchar = convert_to_wchar(command);
 	}
 
-	if (!CreateProcess(command_wchar, param_wchar, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)){
+	if (!CreateProcess(command_wchar, param_wchar, NULL, NULL, 0, 0, NULL, NULL, &si, &pi)){
 		error = GetLastError();
 	}
 

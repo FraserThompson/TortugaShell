@@ -8,8 +8,11 @@
 */
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
-#include <Windows.h>
-#include <wchar.h>
+#include <stdlib.h>
+#ifdef _WIN32 || _WIN64
+	#include <Windows.h>
+	#include <wchar.h>
+#endif
 
 /* -------WINDOWS------
 * Returns the CWD in windows
