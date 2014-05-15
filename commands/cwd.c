@@ -9,17 +9,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <Windows.h>
-
-#ifdef WINDOWS
-#elif LINUX
-#elif OSX
-#endif
+#include <wchar.h>
 
 /* -------WINDOWS------
 * Returns the CWD in windows
 */
-void *getCWD_win(char *cwd){
-
+void *getCWD_win(){
+	wchar_t cwd[1024];
 	if (!GetCurrentDirectory(1024, cwd)) {
 		printf("Error getting current directory! %s\n", GetLastError());
 	}
@@ -42,8 +38,6 @@ int main(int argc, char *argv[]){
 		return EXIT_SUCCESS;
 	}
 
-	char cwd[1024] = "";
-	getCWD_win(cwd);
-	printf("%ws\n", cwd);
+	printf("%ws\n", getCWD_win());
 	return EXIT_SUCCESS;
 }

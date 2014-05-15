@@ -7,14 +7,11 @@
  * Contains methods which help with parsing commands.
  */
 #define _CRT_SECURE_NO_WARNINGS
-#define DEBUG 0
 #define NUM_DIRS 3
 
-#include <wchar.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <Windows.h>
 #include "parser.h"
 #include "process_mgmt.h"
 
@@ -25,12 +22,12 @@
 * Return: An integer indicating whether it's a command (0) or a path (1)
 */
 static int command_type(char *command){
-	if (DEBUG){ printf("COMMAND_TYPE: Input: %s\n", command); }
+	if (debug_global){ printf("COMMAND_TYPE: Input: %s\n", command); }
 	if (command[1] == ':'){
-		if (DEBUG){ printf("COMMAND_TYPE: It's a path.\n", command); }
+		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n", command); }
 		return 1;
 	}
-	if (DEBUG){ printf("COMMAND_TYPE: It's a command.\n", command); }
+	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n", command); }
 	return 0;
 }
 
@@ -44,9 +41,9 @@ char *concat_string(char *first, char *second, char *third){
 	size_t second_len = strlen(second) + 1;
 	size_t third_len = 0;
 
-	if (DEBUG){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
+	if (debug_global){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
 	if (third){
-		if (DEBUG){ printf("CONCAT_STRING: Input: %s\n", third); }
+		if (debug_global){ printf("CONCAT_STRING: Input: %s\n", third); }
 		third_len = strlen(third) + 1;
 	}
 
@@ -57,17 +54,17 @@ char *concat_string(char *first, char *second, char *third){
 		exit(EXIT_FAILURE);
 	}
 
-	if (DEBUG){ printf("CONCAT_STRING: Adding first: %s\n", first); }
+	if (debug_global){ printf("CONCAT_STRING: Adding first: %s\n", first); }
 	strncpy(result, first, first_len);
-	if (DEBUG){ printf("CONCAT_STRING: Adding second: %s\n", second); }
+	if (debug_global){ printf("CONCAT_STRING: Adding second: %s\n", second); }
 	strncat(result, second, second_len);
 
 	if (third){
-		if (DEBUG) { printf("CONCAT_STRING: Adding third: %s\n", third);  }
+		if (debug_global) { printf("CONCAT_STRING: Adding third: %s\n", third);  }
 		strncat(result, third, third_len);
 	}
 
-	if (DEBUG) { printf("CONCAT_STRING: Returning: %s\n", result); }
+	if (debug_global) { printf("CONCAT_STRING: Returning: %s\n", result); }
 	return result;
 }
 
@@ -84,10 +81,10 @@ char **split(char *str) {
 
 	token = strtok(str, " ");
 
-	if (DEBUG){ printf("SPLIT: Input: %s\n", str); }
+	if (debug_global){ printf("SPLIT: Input: %s\n", str); }
 
 	while (token) {
-		if (DEBUG){ printf("SPLIT: Working on token: %s\n", token); }
+		if (debug_global){ printf("SPLIT: Working on token: %s\n", token); }
 
 		// Remove newline character
 		newline = strchr(token, '\n');
@@ -102,7 +99,7 @@ char **split(char *str) {
 		}
 		commands[count - 1] = token;
 		token = strtok(0, " ");
-		if (DEBUG){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
+		if (debug_global){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
 	//Add a null entry to the end of the array
@@ -114,7 +111,7 @@ char **split(char *str) {
 	}
 
 	commands[count] = 0;
-	if (DEBUG){ printf("SPLIT: Returning\n"); }
+	if (debug_global){ printf("SPLIT: Returning\n"); }
 	return commands;
 }
 
@@ -128,9 +125,10 @@ void parse_command(char *command, char *params, int type) {
 	int i = 0;
 	char *command_dir = command;
 	char *command_exe = command;
-	char *dirs[NUM_DIRS] = { "./commands/", concat_string(get_system_dir_win(), "\\", NULL), "./"};
+	char *system_dir = concat_string(get_system_dir_win(), "\\", NULL);
+	char *dirs[NUM_DIRS] = { "./commands/", system_dir, "./"};
 	char *exe = ".exe";
-	if (DEBUG){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
+	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
 
 	// Processing a relative path
 	if (type == 0) {
@@ -142,10 +140,9 @@ void parse_command(char *command, char *params, int type) {
 
 		// Check for the desired command in all dirs until found
 		while (i != NUM_DIRS){
-			printf("%i\n", i);
 			command_dir = concat_string(dirs[i], command_exe, NULL);
 			i++;
-			if (DEBUG){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
+			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
 			error = create_process_win(command_dir, params);
 			if (error == 0) {
 				return;
@@ -175,14 +172,14 @@ void parse(char *cmdline) {
 	int type;
 	int i = 2;
 
-	if (DEBUG){ printf("PARSE: Input: %s\n", cmdline); }
+	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
 	commands = split(cmdline);
-	if (DEBUG){ printf("PARSE: First command: %s\n", commands[0]); }
+	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
 	type = command_type(commands[0]);
 
 	// If there's more than just one thing
 	if (commands[1]){
-		if (DEBUG){ printf("PARSE: Adding parameter: %s\n", commands[1]); }
+		if (debug_global){ printf("PARSE: Adding parameter: %s\n", commands[1]); }
 		params = (char*)malloc(strlen(commands[1] + 1));
 		if (params == NULL){
 			fprintf(stderr, "PARSE: Error during malloc!");
@@ -190,7 +187,7 @@ void parse(char *cmdline) {
 		strcpy(params, commands[1]);
 		
 		while (commands[i]){
-			if (DEBUG){ printf("PARSE: Adding parameter: %s\n", commands[i]); }
+			if (debug_global){ printf("PARSE: Adding parameter: %s\n", commands[i]); }
 			params = concat_string(params, " ", commands[i]);
 			i++;
 		}

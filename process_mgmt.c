@@ -7,16 +7,12 @@
 *  Contains methods which help with creating processes on Windows/Linux.
 */
 #define _CRT_SECURE_NO_WARNINGS
-#include <wchar.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <Windows.h>
 #include <string.h>
-
-#ifdef WINDOWS
-#elif LINUX
-#elif OSX
-#endif
+#include <Windows.h>
+#include <wchar.h>
+#include "parser.h"
 
 /* -------WINDOWS------
 * Converts a normal array of char into an array of wide char because Windows
@@ -43,7 +39,7 @@ static wchar_t *convert_to_wchar(char *input){
 */
 static char *convert_to_char(wchar_t *input){
 	size_t len = wcslen(input) + 1;
-	printf("CONVERT_TO_CHAR: Input - %ws\n", input);
+	if (debug_global){ printf("CONVERT_TO_CHAR: Input - %ws\n", input); }
 	char *command_c = malloc(sizeof(char)* len);
 
 	if (command_c == NULL){
@@ -52,7 +48,7 @@ static char *convert_to_char(wchar_t *input){
 	}
 
 	wcstombs(command_c, input, len);
-	printf("CONVERT_TO_CHAR: Output - %s\n", command_c);
+	if (debug_global){ printf("CONVERT_TO_CHAR: Output - %s\n", command_c); }
 	return command_c;
 }
 
@@ -80,6 +76,8 @@ int create_process_win(char *command, char *params) {
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 	ZeroMemory(&pi, sizeof(pi));
+
+	if (debug_global){ printf("CREATE_PROCESS_WIN: Creating process in Windows %s with parameter %s\n", command, params); }
 
 	if (params){
 		param_wchar = convert_to_wchar(params);
