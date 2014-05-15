@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
-int debug_global = 0;
+int debug_global = 1;
 
 /* -----CROSS PLATFORM----
 * Prints a prompt, interprets user input.
@@ -33,9 +33,11 @@ static char *readline(void) {
 * Main loop. Reads a line and parses it.
 */
 int main(int argc, char *argv[]) {
-
-	if ((strcmp(argv[0], "-debug") == 0) || (strcmp(argv[0], "-d") == 0)) {
-		debug_global = 1;
+	
+	if (argc > 1){
+		if ((strcmp(argv[1], "-d") == 0) || (strcmp(argv[1], "-debug") == 0)) {
+			debug_global = 1;
+		}
 	}
 
 	while (1){

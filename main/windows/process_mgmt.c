@@ -60,6 +60,7 @@ static char *convert_to_char(wchar_t *input){
 char *get_system_dir(void){
 	size_t size = 100;
 	wchar_t buffer[100];
+	if (debug_global){ printf("GET_SYSTEM_DIR: Getting system dir"); }
 	if (!GetSystemDirectory(buffer, size)){
 		printf("GET_SYSTEM_DIR: Error getting system dir!");
 		exit(EXIT_FAILURE);
