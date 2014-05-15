@@ -24,10 +24,10 @@
 static int command_type(char *command){
 	if (debug_global){ printf("COMMAND_TYPE: Input: %s\n", command); }
 	if (command[1] == ':'){
-		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n", command); }
+		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n"); }
 		return 1;
 	}
-	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n", command); }
+	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n"); }
 	return 0;
 }
 
