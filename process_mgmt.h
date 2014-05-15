@@ -5,8 +5,7 @@
 #ifndef PROCESS_MGMT
 #define PROCESS_MGMT
 
-extern int create_process_win(char *, char *);
-extern int create_process_unix(char *, char *);
-extern char *get_system_dir_win(void);
+extern int create_process(char *, char *);
+extern char *get_system_dir(void);
 
 #endif

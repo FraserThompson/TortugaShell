@@ -143,7 +143,7 @@ void parse_command(char *command, char *params, int type) {
 			command_dir = concat_string(dirs[i], command_exe, NULL);
 			i++;
 			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
-			error = create_process_win(command_dir, params);
+			error = create_process(command_dir, params);
 			if (error == 0) {
 				return;
 			}
@@ -153,7 +153,7 @@ void parse_command(char *command, char *params, int type) {
 
 	// Processing a full path
 	if (type == 1){
-		error = create_process_win(command, params);
+		error = create_process(command, params);
 		if (error == 0) {
 			return;
 		}

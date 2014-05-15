@@ -10,8 +10,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <Windows.h>
-#include <wchar.h>
+#ifdef _WIN32 || _WIN64
+	#include <Windows.h>
+	#include <wchar.h>
+#endif
 #include "parser.h"
 
 /* -------WINDOWS------
@@ -52,13 +54,35 @@ static char *convert_to_char(wchar_t *input){
 	return command_c;
 }
 
+/* -------WINDOWS------
+* Returns the path to the system dir.
+* Return: path to the system dir
+*/
 char *get_system_dir_win(void){
 	size_t size = 100;
 	wchar_t buffer[100];
 	if (!GetSystemDirectory(buffer, size)){
-		printf("GET_SYSTEM_DIR: Error getting system dir!");
+		printf("GET_SYSTEM_DIR: Error getting system dir!";)
+		exit(EXIT_FAILURE);
 	}
 	return convert_to_char(buffer);
+}
+
+/* -------CROSS-PLATFORM------
+* Creates a process.
+* Parameters: Location of process to spawn, parameters
+* Return: Error code, 0 if success.
+*/
+int create_process(char *command, char *params) {
+	#ifdef TARGET_OS_MAC
+		return create_process_unix();
+	#elif __linux__
+		return create_process_unix();
+	#elif _WIN32 || _WIN64
+		return create_process_win(command, params);
+	#else
+		#error "unknown platform"
+	#endif
 }
 
 /* -------WINDOWS------
