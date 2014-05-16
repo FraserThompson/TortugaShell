@@ -20,7 +20,7 @@
 * Parameter: String to convert
 * Return: Wchar version of input
 */
-static wchar_t *convert_to_wchar(char *input){
+wchar_t *convert_to_wchar(char *input){
 	size_t len = strlen(input) + 1;
 	wchar_t *command_w = malloc(sizeof(wchar_t)* len);
 
@@ -38,7 +38,7 @@ static wchar_t *convert_to_wchar(char *input){
 * Parameter: String to convert
 * Return: Wchar version of input
 */
-static char *convert_to_char(wchar_t *input){
+char *convert_to_char(wchar_t *input){
 	size_t len = wcslen(input) + 1;
 	if (debug_global){ printf("CONVERT_TO_CHAR: Input - %ws\n", input); }
 	char *command_c = malloc(sizeof(char)* len);

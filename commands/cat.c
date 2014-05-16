@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
 	}
 	else
 	{
-		printf("Error opening file.");
+		printf("Error opening file.\n");
 		exit(1);
 	}
 }

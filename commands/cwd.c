@@ -22,7 +22,7 @@ void *getCWD_win(){
 	if (!GetCurrentDirectory(1024, cwd)) {
 		printf("Error getting current directory! %s\n", GetLastError());
 	}
-	return 0;
+	return cwd;
 }
 
 /* -------UNIX------

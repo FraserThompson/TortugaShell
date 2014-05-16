@@ -15,6 +15,11 @@ int main(int argc, char *argv[]){
 	FILE* sourcefile = NULL;
 	FILE* outputfile = NULL;
 
+	if ((strcmp(argv[0], "-help") == 0) || (strcmp(argv[0], "-h") == 0)) {
+		printf("Copies a file.\n");
+		return EXIT_SUCCESS;
+	}
+
 	sourcefile = fopen(argv[0], "r");
 	outputfile = fopen(argv[1], "w+");
 
