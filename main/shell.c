@@ -21,7 +21,7 @@ static char *readline(void) {
 	printf(">");
 
 	if (fgets(line, 300, stdin) == NULL) {
-		fprintf(stderr, "READLINE: Error reading line!");
+		fprintf(stderr, "READLINE: Error reading line!\n");
 		exit(EXIT_FAILURE);
 	}
 	else {

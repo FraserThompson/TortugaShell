@@ -94,7 +94,7 @@ char **split(char *str) {
 
 		commands = realloc(commands, sizeof(char*)* ++count);
 		if (commands == NULL){
-			printf("SPLIT: Error during realloc!");
+			printf("SPLIT: Error during realloc!\n");
 			exit(EXIT_FAILURE);
 		}
 		commands[count - 1] = token;
@@ -106,7 +106,7 @@ char **split(char *str) {
 	commands = realloc(commands, sizeof (char*)* (count + 1));
 
 	if (commands == NULL){
-		fprintf(stderr, "SPLIT: Error during realloc!");
+		fprintf(stderr, "SPLIT: Error during realloc!\n");
 		exit(EXIT_FAILURE);
 	}
 
