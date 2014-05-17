@@ -7,7 +7,7 @@
 
 extern int create_process(char *, char *);
 extern char *get_system_dir(void);
-wchar_t *convert_to_wchar(char *);
-char *convert_to_char(wchar_t *);
+extern wchar_t *convert_to_wchar(char *);
+extern char *convert_to_char(wchar_t *);
 
 #endif
