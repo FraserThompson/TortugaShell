@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <Windows.h>
 #include <tchar.h>
+#include <string.h>
 #include <stdlib.h>
 #include "../help.h"
 #include "../../main/process_mgmt.h"
@@ -44,12 +45,13 @@ void print_help(void){
 			{
 				continue;
 			} else {
-				wprintf(L"%s\n", sPath);
-
-				error = create_process(convert_to_char(sPath), "-h");
-				if (error != 0) {
-					printf("PRINT_HELP: Could not open.\n");
-					exit(EXIT_FAILURE);
+				wprintf(L"%s: \t", fdFile.cFileName);
+				if (strcmp(fdFile.cFileName, L"help.exe")){
+					error = create_process(convert_to_char(sPath), "-h");
+					if (error != 0) {
+						printf("PRINT_HELP: Could not open.\n");
+						exit(EXIT_FAILURE);
+					}
 				}
 			}
 		}
