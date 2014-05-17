@@ -21,6 +21,9 @@ int main(int argc, char *argv[]){
 	exit(EXIT_SUCCESS);
 }
 
+/* -----WINDOWS----
+* Searches the ./commands directory and prints each filename, and then calls the file with -h to get the help.
+*/
 void print_help(void){
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
