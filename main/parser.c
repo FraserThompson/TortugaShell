@@ -14,6 +14,7 @@
 #include <string.h>
 #include "cwd.h"
 #include "cd.h"
+#include "help.h"
 #include "parser.h"
 #include "process_mgmt.h"
 

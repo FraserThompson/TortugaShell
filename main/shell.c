@@ -9,7 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
-int debug_global = 1;
+#include "cwd.h"
+int debug_global = 0;
 char *PATH;
 
 /* -----CROSS PLATFORM----
