@@ -36,9 +36,16 @@ char *getCWD_unix(){
 *Returns the path to the cwd
 */
 int main(int argc, char *argv[]){
-	if ((strcmp(argv[0], "-help") == 0) || (strcmp(argv[0], "-h") == 0)) {
-		printf("Displays the current working directory.\n");
-		return EXIT_SUCCESS;
+	int i = 0;
+
+	//Help message, printed by default if no arguments
+	while (argv){
+		printf("%s\n", argv[i]);
+		if ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0)) {
+			printf("CWD: Prints the path of the current working directory. Usage: cwd\n");
+			return EXIT_SUCCESS;
+		}
+		i++;
 	}
 
 	printf("%ws\n", getCWD_win());

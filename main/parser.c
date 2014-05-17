@@ -127,7 +127,8 @@ void parse_command(char *command, char *params, int type) {
 	char *command_exe = command;
 	char *system_dir = concat_string(get_system_dir(), "\\", NULL);
 	char *dirs[NUM_DIRS] = { "./commands/", system_dir, "./"};
-	char *exe = ".exe";
+	char *exe = ".exe"; 
+
 	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
 
 	// Processing a relative path
@@ -143,6 +144,9 @@ void parse_command(char *command, char *params, int type) {
 			command_dir = concat_string(dirs[i], command_exe, NULL);
 			i++;
 			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
+			if (params){
+				params = concat_string(command_dir, " ", params);
+			}
 			error = create_process(command_dir, params);
 			if (error == 0) {
 				return;
@@ -154,6 +158,9 @@ void parse_command(char *command, char *params, int type) {
 	// Processing a full path
 	if (type == 1){
 		error = create_process(command, params);
+		if (params){
+			params = concat_string(command, " ", params);
+		}
 		if (error == 0) {
 			return;
 		}
