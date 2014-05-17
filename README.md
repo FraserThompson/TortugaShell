@@ -19,9 +19,9 @@ Contains the main loop which prints an arrow and takes user input.
 
 ####/main/platform/process_mgmt.c
 `int create_process(char *command, char *params)`: Creates a process under windows. 
-`char *get_system_dir(void)`: Returns the path to the system directory.
-`wchar_t *convert_to_wchar(char *)`: Converts a char to a wchar.
-`char *convert_to_char(wchar_t *)`: Converts a wchar to a char.
+`char *get_system_dir(void)`: Returns the path to the system directory.  
+`wchar_t *convert_to_wchar(char *)`: Converts a char to a wchar.  
+`char *convert_to_char(wchar_t *)`: Converts a wchar to a char.  
 
 ####/main/platform/cd.c
 `void cd(char *)`: Changes the current working directory.
