@@ -19,7 +19,6 @@ int main(int argc, char *argv[]){
 
 	//Help message, printed by default if no arguments
 	while (argv[i]){
-		printf("%s\n", argv[i]);
 		if (argc == 1 || ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0))) {
 			printf("ECHO: Prints the user's message to the commandline. Usage: echo [message to print]\n");
 			return EXIT_SUCCESS;

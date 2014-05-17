@@ -32,7 +32,6 @@ int main(int argc, char *argv[]){
 
 	//Help message, printed by default if no arguments
 	while (argv[i]){
-		printf("%s\n", argv[i]);
 		if ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0)) {
 			printf("CWD: Prints the path of the current working directory. Usage: cwd\n");
 			return EXIT_SUCCESS;
