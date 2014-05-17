@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* -----CROSS PLATFORM----
+* Copies a file.
+*/
 int main(int argc, char *argv[]){
 	char ch;
 	int i = 0;

@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* -----CROSS PLATFORM----
+* Deletes a file.
+*/
 int main(int argc, char *argv[]){
 	int i = 0;
 	FILE* createdfile = NULL;
@@ -29,11 +32,11 @@ int main(int argc, char *argv[]){
 	status = remove(argv[0]);
 
 	if (status == 0){
-		printf("Success! File %s has been deleted\n", argv[0]);
+		printf("RM: Success! File %s has been deleted\n", argv[0]);
 	}
 	else
 	{
-		printf("File delete failed. :(\n");
+		printf("RM: File delete failed. :(\n");
 
 	}		
 }

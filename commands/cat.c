@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
 	}
 	else
 	{
-		printf("Error opening file.\n");
+		printf("CAT: Error opening file.\n");
 		exit(1);
 	}
 }

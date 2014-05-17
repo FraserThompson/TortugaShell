@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* -----CROSS PLATFORM----
+* Creates a file.
+*/
 int main(int argc, char *argv[]){
 	FILE* createdfile=NULL;
 	int i = 0;
@@ -26,7 +29,7 @@ int main(int argc, char *argv[]){
 
 	createdfile = fopen(argv[0], "w+");
 
-	printf("File %s has been created.\n", argv[0]);
+	printf("TOUCH: File %s has been created.\n", argv[0]);
 	fclose(createdfile);
 
 	return 0;

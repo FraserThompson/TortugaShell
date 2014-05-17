@@ -11,6 +11,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* -----CROSS PLATFORM----
+* Prints a string to stdout.
+*/
 int main(int argc, char *argv[]){
 	int i = 0;
 
