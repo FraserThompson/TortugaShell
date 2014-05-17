@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
 	int i = 0;
 
 	//Help message, printed by default if no arguments
-	while (argv){
+	while (argv[i]){
 		printf("%s\n", argv[i]);
 		if (argc == 1 || ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0))) {
 			printf("TOUCH: Creates an empty file. Usage: touch [file]\n");

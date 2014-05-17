@@ -33,11 +33,13 @@ static char *readline(void) {
 * Main loop. Reads a line and parses it.
 */
 int main(int argc, char *argv[]) {
-	
-	if (argc > 1){
-		if ((strcmp(argv[1], "-d") == 0) || (strcmp(argv[1], "-debug") == 0)) {
+	int i = 0;
+
+	while (argv[i]){
+		if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-debug") == 0)) {
 			debug_global = 1;
 		}
+		i++;
 	}
 
 	while (1){

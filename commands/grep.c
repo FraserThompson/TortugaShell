@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
 	FILE *f= NULL;
 
 	//Help message, printed by default if no arguments
-	while (argv){
+	while (argv[i]){
 		printf("%s\n", argv[i]);
 		if (argc == 1 || ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0))) {
 			printf("GREP: Searches a file for a string. Usage: grep [file] [search string]\n");

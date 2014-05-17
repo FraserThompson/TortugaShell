@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
 
 
 	//Help message, printed by default if no arguments
-	while (argv){
+	while (argv[i]){
 		printf("%s\n", argv[i]);
 		if (argc == 1 || ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0))) {
 			printf("CP: Copies the contents of the requested file. Usage: cat [file1] [file2]\n");
