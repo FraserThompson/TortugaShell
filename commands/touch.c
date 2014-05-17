@@ -26,9 +26,9 @@ int main(int argc, char *argv[]){
 		i++;
 	}
 
-	createdfile = fopen(argv[0], "w+");
+	createdfile = fopen(argv[1], "w+");
 
-	printf("TOUCH: File %s has been created.\n", argv[0]);
+	printf("TOUCH: File %s has been created.\n", argv[1]);
 	fclose(createdfile);
 
 	return 0;

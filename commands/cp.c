@@ -29,8 +29,8 @@ int main(int argc, char *argv[]){
 		i++;
 	}
 
-	sourcefile = fopen(argv[0], "r");
-	outputfile = fopen(argv[1], "w+");
+	sourcefile = fopen(argv[1], "r");
+	outputfile = fopen(argv[2], "w+");
 
 	while ((ch = fgetc(sourcefile)) != EOF){
 	fputc(ch, outputfile);	

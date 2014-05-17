@@ -26,6 +26,7 @@ int main(int argc, char *argv[]){
 		i++;
 	}
 
+	i = 1;
 	while (argv[i]){
 		printf("%s ", argv[i++]);
 	}

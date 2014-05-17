@@ -4,12 +4,13 @@
 *  Created on: 29/04/2014
 *      Author: Fraser
 */
-#define _CRT_SECURE_NO_WARNINGS 
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
 int debug_global = 1;
+char *PATH;
 
 /* -----CROSS PLATFORM----
 * Prints a prompt, interprets user input.
@@ -34,6 +35,7 @@ static char *readline(void) {
 */
 int main(int argc, char *argv[]) {
 	int i = 0;
+	PATH = concat_string(getCWD(), "\\commands\\", NULL);
 
 	while (argv[i]){
 		if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-debug") == 0)) {

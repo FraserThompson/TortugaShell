@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "cwd.h"
+#include "cd.h"
 #include "parser.h"
 #include "process_mgmt.h"
 
@@ -126,7 +128,7 @@ void parse_command(char *command, char *params, int type) {
 	char *command_dir = command;
 	char *command_exe = command;
 	char *system_dir = concat_string(get_system_dir(), "\\", NULL);
-	char *dirs[NUM_DIRS] = { "./commands/", system_dir, "./"};
+	char *dirs[NUM_DIRS] = { PATH, system_dir, "./"};
 	char *exe = ".exe"; 
 
 	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
@@ -150,6 +152,9 @@ void parse_command(char *command, char *params, int type) {
 			error = create_process(command_dir, params);
 			if (error == 0) {
 				return;
+			}
+			else {
+				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
 			}
 		}
 
@@ -182,6 +187,23 @@ void parse(char *cmdline) {
 	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
 	commands = split(cmdline);
 	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
+
+	// If the user is trying to cd
+	if (strcmp(commands[0], "cd") == 0){
+		cd(commands[1]);
+		return;
+	}
+	// If the user is trying to get cwd
+	else if (strcmp(commands[0], "cwd") == 0){
+		printf("%s\n", getCWD(commands[1]));
+		return;
+	}
+	// If the user is trying to get to help
+	else if (strcmp(commands[0], "help") == 0){
+		print_help();
+		return;
+	}
+
 	type = command_type(commands[0]);
 
 	// If there's more than just one thing
