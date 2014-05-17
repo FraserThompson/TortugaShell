@@ -13,18 +13,21 @@ Contains the main loop which prints an arrow and takes user input.
 `parse_command(char *, char *, int)`: Processes a line of commands.  
 `parse(char *)`: Parses an individual command.  
 `char **split(char *)`: Splits a string into an array of words.  
-`char *concat_string(char *, char *, char*)`: Joins up to three strings. 
-`int debug_global`: Global variable signifying whether or not to print debug text.
-`char* PATH`: Global variable used to hold the path the user ran Tortuga from.
+`char *concat_string(char *, char *, char*)`: Joins up to three strings.  
+`int debug_global`: Global variable signifying whether or not to print debug text.  
+`char* PATH`: Global variable used to hold the path the user ran Tortuga from.  
 
 ####/main/platform/process_mgmt.c
-`int create_process(char *command, char *params)`: Creates a process under windows.  
+`int create_process(char *command, char *params)`: Creates a process under windows. 
+`char *get_system_dir(void)`: Returns the path to the system directory.
+`wchar_t *convert_to_wchar(char *)`: Converts a char to a wchar.
+`char *convert_to_char(wchar_t *)`: Converts a wchar to a char.
 
 ####/main/platform/cd.c
 `void cd(char *)`: Changes the current working directory.
 
 ####/main/platform/cwd.c
-`void *getCWD(void)`: Returns the path fo the current working directory.
+`char *getCWD(void)`: Returns the path fo the current working directory.
 
 ####/main/platform/help.c
 `void print_help(void)`: Returns the name of all the executables in the ./commands directory alongside their -h call.
