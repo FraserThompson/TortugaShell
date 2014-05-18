@@ -20,7 +20,7 @@ char *PATH;
 static char *readline(void) {
 	// line can be up to 300 chars
 	char *line = malloc(sizeof(char)* 300);
-	printf(">");
+	printf("%s>", PATH);
 
 	if (fgets(line, 300, stdin) == NULL) {
 		fprintf(stderr, "READLINE: Error reading line!\n");
@@ -36,7 +36,7 @@ static char *readline(void) {
 */
 int main(int argc, char *argv[]) {
 	int i = 0;
-	PATH = concat_string(getCWD(), "\\commands\\", NULL);
+	PATH = getCWD();
 
 	while (argv[i]){
 		if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-debug") == 0)) {
