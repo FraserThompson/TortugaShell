@@ -17,7 +17,7 @@
 void cd(char *dir) {
 	int i = 0;
 
-	if (chdir(dir) != 0) {
+	if (chdir(dir) != 0||dir==NULL) {
 		printf("CD: Error! Malformed path maybe?\n");
 		return EXIT_FAILURE;
 	}

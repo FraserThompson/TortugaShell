@@ -191,8 +191,14 @@ void parse(char *cmdline) {
 
 	// If the user is trying to cd
 	if (strcmp(commands[0], "cd") == 0){
-		cd(commands[1]);
-		return;
+		if (commands[1] == NULL){
+			printf("Input required: Directory to change to.");
+			return;
+		}
+		else{
+			cd(commands[1]);
+			return;
+		}
 	}
 	// If the user is trying to get cwd
 	else if (strcmp(commands[0], "cwd") == 0){
