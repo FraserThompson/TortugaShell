@@ -29,6 +29,15 @@ void print_help(void){
 
 	wsprintf(sPath, L"%s\\*.exe", sDir);
 
+	// First display the hardcoded built in commands
+	printf("\n\t----------BUILT IN COMMANDS----------\n\n");
+	printf("cd\tChanges the current working directory.\n\tUsage: cd [directory]\n");
+	printf("cwd\tPrints the current working directory.\n\tUsage: cwd\n");
+	printf("help\tPrints this help message.\n\tUsage: help\n");
+
+	// Then work on the binaries in the commands subdirectory
+	printf("\n\t----------EXTERNAL COMMANDS----------\n\n");
+
 	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
 	{
 		wprintf(L"Path not found: [%s]\n", sDir);
@@ -44,7 +53,6 @@ void print_help(void){
 			{
 				continue;
 			} else {
-				printf(L"%ws: \t", fdFile.cFileName);
 				error = create_process(convert_to_char(sPath), "-h");
 				if (error != 0) {
 					printf("PRINT_HELP: Could not open.\n");
@@ -53,5 +61,6 @@ void print_help(void){
 			}
 		}
 	} while (FindNextFile(hFind, &fdFile)); 
+	printf("\n"); // makes it tidier
 	FindClose(hFind); 
 }
