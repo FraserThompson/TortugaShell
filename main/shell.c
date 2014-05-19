@@ -5,6 +5,7 @@
 *      Author: Fraser
 */
 #define _CRT_SECURE_NO_WARNINGS
+#define MAX_LINE 300
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,11 +19,10 @@ char *PATH;
 * Return: Line that the user inputted
 */
 static char *readline(void) {
-	// line can be up to 300 chars
-	char *line = malloc(sizeof(char)* 300);
-	printf("%s>", PATH);
+	char *line = malloc(sizeof(char)* MAX_LINE);
+	printf("%s>", getCWD());
 
-	if (fgets(line, 300, stdin) == NULL) {
+	if (fgets(line, MAX_LINE, stdin) == NULL) {
 		fprintf(stderr, "READLINE: Error reading line!\n");
 		exit(EXIT_FAILURE);
 	}

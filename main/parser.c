@@ -76,13 +76,13 @@ char *concat_string(char *first, char *second, char *third){
 * Parameter: String to split
 * Return: Array of words
 */
-char **split(char *str) {
+char **split(char *str, char *delimiter, int *last_index) {
 	char *token;
 	char **commands = 0;
 	char *newline;
 	int count = 0;
 
-	token = strtok(str, " ");
+	token = strtok(str, delimiter);
 
 	if (debug_global){ printf("SPLIT: Input: %s\n", str); }
 
@@ -101,7 +101,7 @@ char **split(char *str) {
 			exit(EXIT_FAILURE);
 		}
 		commands[count - 1] = token;
-		token = strtok(0, " ");
+		token = strtok(0, delimiter);
 		if (debug_global){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
@@ -114,7 +114,8 @@ char **split(char *str) {
 	}
 
 	commands[count] = 0;
-	if (debug_global){ printf("SPLIT: Returning\n"); }
+	if (debug_global){ printf("SPLIT: Returning %i tokens\n", count); }
+	*last_index = count;
 	return commands;
 }
 
@@ -184,19 +185,22 @@ void parse(char *cmdline) {
 	char **commands;
 	char *params = NULL;
 	int type;
+	int last_index = 0;
 	int i = 2;
 
 	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
-	commands = split(cmdline);
+	commands = split(cmdline, " ", &last_index);
 	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
 
 	// If the user is trying to get cwd
 	if (strcmp(commands[0], "cwd") == 0){
+		if (debug_global){ printf("PARSE: Got cwd, printing cwd then returning.\n"); }
 		printf("%s\n", getCWD(commands[1]));
 		return;
 	}
 	// If the user is trying to get to help
 	else if (strcmp(commands[0], "help") == 0){
+		if (debug_global){ printf("PARSE: Got help, printing help then returning.\n"); }
 		print_help();
 		return;
 	}
@@ -207,6 +211,7 @@ void parse(char *cmdline) {
 	if (commands[1]){
 		// If the user tried to cd
 		if (strcmp(commands[0], "cd") == 0){
+			if (debug_global){ printf("PARSE: Got CD, changing directory then returning.\n"); }
 			cd(commands[1]);
 			return;
 		}

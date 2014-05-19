@@ -9,6 +9,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
+#include <direct.h>
+#include "../parser.h"
 #include "../cd.h"
 
 /* -----CROSS-PLATFORM----
@@ -17,9 +19,11 @@
 void cd(char *dir) {
 	int i = 0;
 
-	if (chdir(dir) != 0||dir==NULL) {
+	if (_chdir(dir) != 0||dir==NULL) {
 		printf("CD: Error! Malformed path maybe?\n");
-		return EXIT_FAILURE;
+		exit(EXIT_FAILURE);
 	}
+
+	if (debug_global){ printf("CD: Changed directory to %s.\n", dir); }
 }
 
