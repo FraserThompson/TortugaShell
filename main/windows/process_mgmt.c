@@ -65,7 +65,15 @@ char *get_system_dir(void){
 		printf("GET_SYSTEM_DIR: Error getting system dir!\n");
 		exit(EXIT_FAILURE);
 	}
-	return convert_to_char(buffer);
+	return concat_string(convert_to_char(buffer), "\\", NULL);
+}
+
+/* -------WINDOWS------
+* Returns the path to the system dir.
+* Return: path to the system dir
+*/
+char *get_commands_dir(void){
+	return concat_string(PATH, "\\commands\\", NULL);
 }
 
 
