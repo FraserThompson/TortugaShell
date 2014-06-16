@@ -130,8 +130,8 @@ void parse_command(char *command, char *params, int type) {
 	char *command_dir = command; //command with dir on the front
 	char *command_exe = command; //command with exe on the back
 	char *exe = ".exe";
-	char *path_commands = concat_string(PATH, "\\commands\\", NULL);
-	char *system_dir = concat_string(get_system_dir(), "\\", NULL);
+	char *path_commands = get_commands_dir(); //contained in process_mgmt.c
+	char *system_dir = get_system_dir(); //contained in process_mgmt.c
 	char *dirs[NUM_DIRS] = { path_commands, system_dir, "./"};
 
 	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }

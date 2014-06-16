@@ -11,6 +11,7 @@
 #include <string.h>
 #include "parser.h"
 #include "cwd.h"
+
 int debug_global = 1;
 char *PATH;
 
@@ -36,7 +37,7 @@ static char *readline(void) {
 */
 int main(int argc, char *argv[]) {
 	int i = 0;
-	PATH = getCWD();
+        PATH = getCWD();
 
 	while (argv[i]){
 		if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-debug") == 0)) {
