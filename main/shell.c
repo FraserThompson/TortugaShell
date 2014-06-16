@@ -11,7 +11,7 @@
 #include <string.h>
 #include "parser.h"
 #include "cwd.h"
-int debug_global = 0;
+int debug_global = 1;
 char *PATH;
 
 /* -----CROSS PLATFORM----
