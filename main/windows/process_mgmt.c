@@ -69,13 +69,21 @@ char *get_system_dir(void){
 }
 
 /* -------WINDOWS------
-* Returns the path to the system dir.
-* Return: path to the system dir
+* Returns the PATH the application was run from with \\commands\\ on the end.
+* Return: path
 */
 char *get_commands_dir(void){
 	return concat_string(PATH, "\\commands\\", NULL);
 }
 
+/* -------WINDOWS------
+* Returns the command with the extension added (.exe in Windows).
+* Parameter: Command to attach it to.
+* Return: Command with extension added
+*/
+char *get_command_ext(command){
+	return concat_string(command, ".exe", NULL);
+}
 
 /* -------WINDOWS------
 * Creates a process in Windows.

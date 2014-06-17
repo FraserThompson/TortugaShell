@@ -8,6 +8,7 @@
 extern int create_process(char *, char *);
 extern char *get_system_dir(void);
 extern char *get_commands_dir(void);
+extern char *get_command_ext(command);
 extern wchar_t *convert_to_wchar(char *);
 extern char *convert_to_char(wchar_t *);
 

@@ -127,9 +127,8 @@ char **split(char *str, char *delimiter, int *last_index) {
 void parse_command(char *command, char *params, int type) {
 	int error = 0;
 	int i = 0;
-	char *command_dir = command; //command with dir on the front
-	char *command_exe = command; //command with exe on the back
-	char *exe = ".exe";
+	char *command_dir;
+	char *command_ext;
 	char *path_commands = get_commands_dir(); //contained in process_mgmt.c
 	char *system_dir = get_system_dir(); //contained in process_mgmt.c
 	char *dirs[NUM_DIRS] = { path_commands, system_dir, "./"};
@@ -139,25 +138,37 @@ void parse_command(char *command, char *params, int type) {
 	// Processing a relative path
 	if (type == 0) {
 
-		// Add .exe on the end if not there already
-		if (!strstr(command, exe)){
-			command_exe = concat_string(command, exe, NULL);
-		}
-
-		// Check for the desired command in all dirs until found
+		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
-			command_dir = concat_string(dirs[i], command_exe, NULL);
+			command_dir = concat_string(dirs[i], command, NULL); // Add directory to front
+			command_ext = get_command_ext(command_dir); // Add extension to end
 			i++;
 			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
 			if (params){
 				params = concat_string(command_dir, " ", params);
 			}
 			error = create_process(command_dir, params);
+
+			// If it's all good
 			if (error == 0) {
 				return;
 			}
+
+			// If it's not all good
 			else {
 				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
+				// Try again with the extension
+				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
+				error = create_process(command_ext, params); 
+				// If it's all good
+				if (error == 0) {
+					return;
+				}
+				// If it's not all good
+				else {
+					if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
+				}
+
 			}
 		}
 
@@ -228,6 +239,6 @@ void parse(char *cmdline) {
 			i++;
 		}
 	}
-	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", commands[0]); }
+	if (debug_global){ printf("PARSE: Sending %s to parse_command forextcution\n", commands[0]); }
 	parse_command(commands[0], params, type);
 }
