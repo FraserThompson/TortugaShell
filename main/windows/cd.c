@@ -21,7 +21,7 @@ void cd(char *dir) {
 
 	if (_chdir(dir) != 0||dir==NULL) {
 		printf("CD: Error! Malformed path maybe?\n");
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	if (debug_global){ printf("CD: Changed directory to %s.\n", dir); }

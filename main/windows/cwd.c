@@ -21,6 +21,7 @@ char *getCWD(){
 	wchar_t cwd[1024];
 	if (!GetCurrentDirectory(1024, cwd)) {
 		printf("CWD: Error getting current directory! %s\n", GetLastError());
+		return EXIT_FAILURE;
 	}
 	return convert_to_char(cwd);
 }
