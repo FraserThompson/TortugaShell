@@ -31,6 +31,16 @@ char *get_commands_dir(void){
     if (debug_global){ printf("GET_COMMANDS_DIR: Getting it for Linux.\n"); }
     return concat_string(PATH, "/commands/", NULL);
 }
+
+/* -------LINUX------
+* Returns the command with the extension added (does nothing in Linux).
+* Parameter: Command 
+* Return: Command 
+*/
+char *get_command_ext(char *command){
+    return command;
+}
+
 /* -------LINUX------
 * Creates a process in Unix/Linux.
 * Parameters: Location of process to spawn
