@@ -57,7 +57,7 @@ char *concat_string(char *first, char *second, char *third){
 
 /* -----CROSS PLATFORM----
 * Splits a string of space seperated words into an array of words
-* Parameter: String to split
+* Parameter: String to split, delimiter, memory address of integer to store index of last item.
 * Return: Array of words
 */
 char **split(char *str, char *delimiter, int *last_index) {
@@ -111,10 +111,11 @@ char **split(char *str, char *delimiter, int *last_index) {
 void parse_command(char *command, char *params, int type) {
 	int error = 0;
 	int i = 0;
-	char *command_dir;
-	char *command_ext;
-	char *path_commands = get_commands_dir(); //contained in process_mgmt.c
-	char *system_dir = get_system_dir(); //contained in process_mgmt.c
+	char *command_dir; // Command with dir on front
+        char *argv;
+	char *command_ext; // Command with ext on end
+	char *path_commands = get_commands_dir(); // PATH/commands/
+	char *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	char *dirs[NUM_DIRS] = { path_commands, system_dir, "./"};
 
 	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
@@ -125,12 +126,19 @@ void parse_command(char *command, char *params, int type) {
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
 			command_dir = concat_string(dirs[i], command, NULL); // Add directory to front
+                        argv = command_dir; // Set the argument as the path to the command
 			command_ext = get_command_ext(command_dir); // Add extension to end
 			i++;
+                        
+                        // If there's a parameter add it on to the argv string
+                        if (params){
+                            argv = concat_string(argv, " ", params);
+                        }
+                        
 			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
 
-			error = create_process(command_dir, params);
-
+			error = create_process(command_dir, argv);
+                        
 			// If it's all good
 			if (error == 0) {
 				return;
@@ -186,13 +194,13 @@ void parse(char *cmdline) {
 	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
 
         /* Begin internal commands! */
-	// If the user is trying to get cwd
+	// cwd
 	if (strcmp(commands[0], "cwd") == 0){
 		if (debug_global){ printf("PARSE: Got cwd, printing cwd then returning.\n"); }
 		printf("%s\n", getCWD(commands[1]));
 		return;
 	}
-	// If the user is trying to get to help
+	// help
 	else if (strcmp(commands[0], "help") == 0){
 		if (debug_global){ printf("PARSE: Got help, printing help then returning.\n"); }
 		print_help();

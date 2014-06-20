@@ -110,11 +110,6 @@ int create_process(char *command, char *params) {
 	int error = 0;
 	wchar_t *param_wchar = NULL;
 	wchar_t *command_wchar = NULL;
-	
-	// In windows parameters are space seperated from command
-	if (params){
-		params = concat_string(command, " ", params);
-	}
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;

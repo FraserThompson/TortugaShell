@@ -61,12 +61,22 @@ char *get_command_ext(char *command){
 * Parameters: Location of process to spawn
 * Return: Error code, 0 if success.
 */
-int create_process(char *command, char *params) {
+int create_process(char *command, char *argv) {
 	pid_t child;
         int status;
-	if (debug_global){ printf("CREATE_PROCESS: Creating %s in Linux with params %s.\n", command, params); }
-        child = fork();
+        int last;
+        int i = 0;
+      
+        char **param_array = split(argv, " ", &last); // Linux needs argv in an array
         
+	if (debug_global){ 
+            printf("CREATE_PROCESS: Creating %s in Linux with params:\n", command); 
+            while (i < last){
+                printf("\t %s\n", param_array[i++]);
+            }
+        }
+        child = fork();
+
         switch (child) {
         /* This is if something goes wrong */
         case -1:
@@ -74,7 +84,8 @@ int create_process(char *command, char *params) {
             return EXIT_FAILURE;
         /* If we're in the child process we can execute a thing */
         case 0:
-            execve(command, params, NULL);
+            execve(command, param_array, NULL);
+            // If we're still here then something is wrong
             printf("CREATE_PROCESS: Could not execute command \'%s\'!\n", command);
             return EXIT_FAILURE;
         /* This is the parent waiting for the child to finish */
