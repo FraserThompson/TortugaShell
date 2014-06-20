@@ -6,4 +6,4 @@
 
 extern void print_help(void);
 
-#endif HELP
+#endif
