@@ -92,7 +92,7 @@ int create_process(char *command, char *argv) {
         default:
             if (debug_global){ printf("CREATE_PROCESS: Child PID = %i\n", child); }
             if (wait(&status) != -1){
-                if (debug_global){ printf("CREATE_PROCESS: Error! Child exited with status %i\n", status); } 
+                if (debug_global){ printf("CREATE_PROCESS: Child exited with status %i\n", status); } 
             } else {
                 if (debug_global){ printf("CREATE_PROCESS: Child terminated."); } 
             }
