@@ -19,22 +19,6 @@
 #include "process_mgmt.h"
 
 /* -----CROSS PLATFORM----
-* Check to see what the command type is: Whether it's just a single command or a physical path. 
-* This is Windows so it does this by checking if the second character is a semicolon. Will have to be different for Linux.
-* Parameter: Command to check.
-* Return: An integer indicating whether it's a command (0) or a path (1)
-*/
-static int command_type(char *command){
-	if (debug_global){ printf("COMMAND_TYPE: Input: %s\n", command); }
-	if (command[1] == ':'){
-		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n"); }
-		return 1;
-	}
-	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n"); }
-	return 0;
-}
-
-/* -----CROSS PLATFORM----
 * Concatenates up to three strings.
 * Parameter: First string, second string, third string (or null).
 * Return: Resulting concatenation.
@@ -144,9 +128,7 @@ void parse_command(char *command, char *params, int type) {
 			command_ext = get_command_ext(command_dir); // Add extension to end
 			i++;
 			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
-			if (params){
-				params = concat_string(command_dir, " ", params);
-			}
+
 			error = create_process(command_dir, params);
 
 			// If it's all good
@@ -203,6 +185,7 @@ void parse(char *cmdline) {
 	commands = split(cmdline, " ", &last_index);
 	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
 
+        /* Begin internal commands! */
 	// If the user is trying to get cwd
 	if (strcmp(commands[0], "cwd") == 0){
 		if (debug_global){ printf("PARSE: Got cwd, printing cwd then returning.\n"); }
@@ -215,7 +198,8 @@ void parse(char *cmdline) {
 		print_help();
 		return;
 	}
-
+        /* End internal commands! */
+        
 	type = command_type(commands[0]);
 
 	// If there's more than just one thing

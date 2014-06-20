@@ -13,6 +13,21 @@
 #include <unistd.h>
 #include "../parser.h"
 
+/* -----LINUX----
+* Check to see what the command type is: Whether it's just a single command or a physical path. 
+* This is Linux so it does this by checking if the first character is a /.
+* Parameter: Command to check.
+* Return: An integer indicating whether it's a command (0) or a path (1)
+*/
+int command_type(char *command){
+	if (debug_global){ printf("COMMAND_TYPE: Input: %s\n", command); }
+	if (command[0] == '/'){
+		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n"); }
+		return 1;
+	}
+	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n"); }
+	return 0;
+}
 
 /* -------LINUX------
 * Returns the path to the system dir.
@@ -47,24 +62,30 @@ char *get_command_ext(char *command){
 * Return: Error code, 0 if success.
 */
 int create_process(char *command, char *params) {
-	pid_t parent = getpid();
-	pid_t child = fork();
-        pid_t tpid;
+	pid_t child;
         int status;
 	if (debug_global){ printf("CREATE_PROCESS: Creating %s in Linux with params %s.\n", command, params); }
-
+        child = fork();
+        
+        switch (child) {
         /* This is if something goes wrong */
-	if (child == -1){
-		fprintf(stderr, "CREATE_PROCESS: Unable to fork process!\n");
-		return EXIT_FAILURE;
+        case -1:
+            printf("CREATE_PROCESS: Unable to fork process!\n");
+            return EXIT_FAILURE;
+        /* If we're in the child process we can execute a thing */
+        case 0:
+            execve(command, params, NULL);
+            printf("CREATE_PROCESS: Could not execute command \'%s\'!\n", command);
+            return EXIT_FAILURE;
         /* This is the parent waiting for the child to finish */
-	} else if (child > 0){
-            wait(&status);
-        /* This is the child being executed */
-	} else {
-		execve(command, params, NULL);
-                printf("CREATE_PROCESS: Could not execute command \'%s\'!\n", command);
-		return EXIT_FAILURE;
+        default:
+            if (debug_global){ printf("CREATE_PROCESS: Child PID = %i\n", child); }
+            if (wait(&status) != -1){
+                if (debug_global){ printf("CREATE_PROCESS: Error! Child exited with status %i\n", status); } 
+            } else {
+                if (debug_global){ printf("CREATE_PROCESS: Child terminated."); } 
+            }
+            break;
 	}
 	return 0;
 }

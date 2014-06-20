@@ -85,6 +85,22 @@ char *get_command_ext(char *command){
 	return concat_string(command, ".exe", NULL);
 }
 
+/* -----WINDOWS----
+* Check to see what the command type is: Whether it's just a single command or a physical path. 
+* This is Windows so it does this by checking if the second character is a semicolon. Will have to be different for Linux.
+* Parameter: Command to check.
+* Return: An integer indicating whether it's a command (0) or a path (1)
+*/
+int command_type(char *command){
+	if (debug_global){ printf("COMMAND_TYPE: Input: %s\n", command); }
+	if (command[1] == ':'){
+		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n"); }
+		return 1;
+	}
+	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n"); }
+	return 0;
+}
+
 /* -------WINDOWS------
 * Creates a process in Windows.
 * Parameters: Location of process to spawn, parameters
@@ -94,6 +110,11 @@ int create_process(char *command, char *params) {
 	int error = 0;
 	wchar_t *param_wchar = NULL;
 	wchar_t *command_wchar = NULL;
+	
+	// In windows parameters are space seperated from command
+	if (params){
+		params = concat_string(command, " ", params);
+	}
 
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
