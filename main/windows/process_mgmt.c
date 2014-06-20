@@ -81,7 +81,7 @@ char *get_commands_dir(void){
 * Parameter: Command to attach it to.
 * Return: Command with extension added
 */
-char *get_command_ext(command){
+char *get_command_ext(char *command){
 	return concat_string(command, ".exe", NULL);
 }
 
