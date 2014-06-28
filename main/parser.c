@@ -108,9 +108,10 @@ char **split(char *str, char *delimiter, int *last_index) {
 * Parses a single command
 * Parameters: Command to parse, parameters string, type of command)
 */
-void parse_command(char *command, char *params, int type) {
+void parse_command(char *command, char *params, line_info info) {
 	int error = 0;
 	int i = 0;
+	int type = info.type;
 	char *command_dir; // Command with dir on front
         char *argv;
 	char *command_ext; // Command with ext on end
@@ -185,39 +186,42 @@ void parse_command(char *command, char *params, int type) {
 void parse(char *cmdline) {
 	char **commands;
 	char *params = NULL;
-	int type;
 	int last_index = 0;
 	int i = 2;
+	line_info info = { NULL, NULL, NULL};
 
 	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
 	commands = split(cmdline, " ", &last_index);
 	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
 
-        /* Begin internal commands! */
+    /* Begin internal commands */
 	// cwd
 	if (strcmp(commands[0], "cwd") == 0){
-		if (debug_global){ printf("PARSE: Got cwd, printing cwd then returning.\n"); }
-		printf("%s\n", getCWD(commands[1]));
-		return;
+		if (debug_global){ printf("PARSE: Got cwd, printing cwd.\n"); }
+		printf("%s\n", getCWD());
+		if (debug_global){ printf("PARSE: Done with cwd, continuing.\n"); }
 	}
 	// help
 	else if (strcmp(commands[0], "help") == 0){
-		if (debug_global){ printf("PARSE: Got help, printing help then returning.\n"); }
+		if (debug_global){ printf("PARSE: Got help, printing help.\n"); }
 		print_help();
-		return;
+		if (debug_global){ printf("PARSE: Done with help, continuing.\n"); }
 	}
-        /* End internal commands! */
-        
-	type = command_type(commands[0]);
+    /* End internal commands */
+    
+	// Figuring out if we're relative or absolute
+	get_command_type(commands[0], info);
 
-	// If there's more than just one thing
+	// If there's more than one token
 	if (commands[1]){
-		// If the user tried to cd
+		// cd
 		if (strcmp(commands[0], "cd") == 0){
-			if (debug_global){ printf("PARSE: Got CD, changing directory then returning.\n"); }
+			if (debug_global){ printf("PARSE: Got cd, changing directory.\n"); }
 			cd(commands[1]);
+			if (debug_global){ printf("PARSE: Done with cd, returning.\n"); }
 			return;
 		}
+
 		if (debug_global){ printf("PARSE: Adding parameter: %s\n", commands[1]); }
 		params = (char*)malloc(strlen(commands[1] + 1));
 		if (params == NULL){
@@ -232,5 +236,5 @@ void parse(char *cmdline) {
 		}
 	}
 	if (debug_global){ printf("PARSE: Sending %s to parse_command forextcution\n", commands[0]); }
-	parse_command(commands[0], params, type);
+	parse_command(commands[0], params, info);
 }

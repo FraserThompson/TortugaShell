@@ -91,14 +91,16 @@ char *get_command_ext(char *command){
 * Parameter: Command to check.
 * Return: An integer indicating whether it's a command (0) or a path (1)
 */
-int command_type(char *command){
-	if (debug_global){ printf("COMMAND_TYPE: Input: %s\n", command); }
+int get_command_type(char *command, line_info info){
+	if (debug_global){ printf("GET_COMMAND_TYPE: Input: %s\n", command); }
 	if (command[1] == ':'){
-		if (debug_global){ printf("COMMAND_TYPE: It's a path.\n"); }
-		return 1;
+		if (debug_global){ printf("GET_COMMAND_TYPE: It's a path.\n"); }
+		info.type = 1;
+		return EXIT_SUCCESS;
 	}
-	if (debug_global){ printf("COMMAND_TYPE: It's a command.\n"); }
-	return 0;
+	if (debug_global){ printf("GET_COMMAND_TYPE: It's a command.\n"); }
+	info.type = 0;
+	return EXIT_SUCCESS;
 }
 
 /* -------WINDOWS------
