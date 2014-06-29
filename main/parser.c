@@ -213,7 +213,7 @@ void parse(char *cmdline) {
 	get_command_type(commands[0], info);
 
 	// If there's more than one token
-	if (commands[1]){
+	if (last_index > 1){
 		// cd
 		if (strcmp(commands[0], "cd") == 0){
 			if (debug_global){ printf("PARSE: Got cd, changing directory.\n"); }
@@ -235,6 +235,7 @@ void parse(char *cmdline) {
 			i++;
 		}
 	}
-	if (debug_global){ printf("PARSE: Sending %s to parse_command forextcution\n", commands[0]); }
+	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", commands[0]); }
 	parse_command(commands[0], params, info);
+	//here is where we should redirect output from the parsed_command if applicable
 }

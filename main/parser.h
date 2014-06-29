@@ -5,9 +5,9 @@
 #define PARSER
 
 typedef struct line_info {
-	int type;
-	int redirection;
-	int piping;
+	int type; //0 if relative, 1 if absolute
+	char *redirectionOut; //location to redirect output to, NULL if no redirection
+	int piping; //1 if contains piping, 0 if not
 } line_info;
 
 extern void parse_command(char *, char *, line_info);
