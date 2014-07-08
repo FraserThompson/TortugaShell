@@ -28,9 +28,9 @@ char *concat_string(char *first, char *second, char *third){
 	size_t second_len = strlen(second) + 1;
 	size_t third_len = 0;
 
-	if (debug_global){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
+	if (debug_global > 1){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
 	if (third){
-		if (debug_global){ printf("CONCAT_STRING: Input: %s\n", third); }
+		if (debug_global > 1){ printf("CONCAT_STRING: Input: %s\n", third); }
 		third_len = strlen(third) + 1;
 	}
 
@@ -41,9 +41,9 @@ char *concat_string(char *first, char *second, char *third){
 		exit(EXIT_FAILURE);
 	}
 
-	if (debug_global){ printf("CONCAT_STRING: Adding first: %s\n", first); }
+	if (debug_global > 1){ printf("CONCAT_STRING: Adding first: %s\n", first); }
 	strncpy(result, first, first_len);
-	if (debug_global){ printf("CONCAT_STRING: Adding second: %s\n", second); }
+	if (debug_global > 1){ printf("CONCAT_STRING: Adding second: %s\n", second); }
 	strncat(result, second, second_len);
 
 	if (third){
@@ -51,7 +51,7 @@ char *concat_string(char *first, char *second, char *third){
 		strncat(result, third, third_len);
 	}
 
-	if (debug_global) { printf("CONCAT_STRING: Returning: %s\n", result); }
+	if (debug_global > 1) { printf("CONCAT_STRING: Returning: %s\n", result); }
 	return result;
 }
 
@@ -68,10 +68,10 @@ char **split(char *str, char *delimiter, int *last_index) {
 
 	token = strtok(str, delimiter);
 
-	if (debug_global){ printf("SPLIT: Input: %s\n", str); }
+	if (debug_global > 1){ printf("SPLIT: Input: %s\n", str); }
 
 	while (token) {
-		if (debug_global){ printf("SPLIT: Working on token: %s\n", token); }
+		if (debug_global > 1){ printf("SPLIT: Working on token: %s\n", token); }
 
 		// Remove newline character
 		newline = strchr(token, '\n');
@@ -86,7 +86,7 @@ char **split(char *str, char *delimiter, int *last_index) {
 		}
 		commands[count - 1] = token;
 		token = strtok(0, delimiter);
-		if (debug_global){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
+		if (debug_global > 1){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
 	//Add a null entry to the end of the array
@@ -98,7 +98,7 @@ char **split(char *str, char *delimiter, int *last_index) {
 	}
 
 	commands[count] = 0;
-	if (debug_global){ printf("SPLIT: Returning %i tokens\n", count); }
+	if (debug_global > 1){ printf("SPLIT: Returning %i tokens\n", count); }
 	*last_index = count;
 	return commands;
 }
@@ -108,10 +108,10 @@ char **split(char *str, char *delimiter, int *last_index) {
 * Parses a single command
 * Parameters: Command to parse, parameters string, type of command)
 */
-void parse_command(char *command, char *params, line_info info) {
+void parse_command(char *command, char *params) {
 	int error = 0;
 	int i = 0;
-	int type = info.type;
+	int type = 0;
 	char *command_dir; // Command with dir on front
         char *argv;
 	char *command_ext; // Command with ext on end
@@ -184,58 +184,76 @@ void parse_command(char *command, char *params, line_info info) {
 * Parameter: Line to process
 */
 void parse(char *cmdline) {
-	char **commands;
-	char *params = NULL;
+	char **full_line;
 	int last_index = 0;
-	int i = 2;
-	line_info info = { NULL, NULL, NULL};
+	int i = 0;
+	command_line line = { NULL, "", NULL, NULL, NULL };
 
+	/*Split the raw line into tokens for processing*/
 	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
-	commands = split(cmdline, " ", &last_index);
-	if (debug_global){ printf("PARSE: First command: %s\n", commands[0]); }
+	full_line = split(cmdline, " ", &last_index);
+	if (debug_global){ printf("PARSE: First item: %s\n", full_line[0]); }
+
+	/*First token will be a command so add it and check type*/
+	line.command = malloc(strlen(full_line[i] + 1) * sizeof(char));
+	strcpy(line.command, full_line[i]);
+	line.type = get_command_type(full_line[i]);
 
     /* Begin internal commands */
-	// cwd
-	if (strcmp(commands[0], "cwd") == 0){
+	if (strcmp(line.command, "cwd") == 0){
 		if (debug_global){ printf("PARSE: Got cwd, printing cwd.\n"); }
 		printf("%s\n", getCWD());
 		if (debug_global){ printf("PARSE: Done with cwd, continuing.\n"); }
 	}
-	// help
-	else if (strcmp(commands[0], "help") == 0){
+	else if (strcmp(line.command, "help") == 0){
 		if (debug_global){ printf("PARSE: Got help, printing help.\n"); }
 		print_help();
 		if (debug_global){ printf("PARSE: Done with help, continuing.\n"); }
 	}
     /* End internal commands */
-    
-	// Figuring out if we're relative or absolute
-	get_command_type(commands[0], info);
-
+ 
 	// If there's more than one token
 	if (last_index > 1){
+		/* Begin internal commands with params*/
 		// cd
-		if (strcmp(commands[0], "cd") == 0){
+		if (strcmp(line.command, "cd") == 0){
 			if (debug_global){ printf("PARSE: Got cd, changing directory.\n"); }
-			cd(commands[1]);
+			cd(full_line[1]);
 			if (debug_global){ printf("PARSE: Done with cd, returning.\n"); }
 			return;
 		}
+		/* End internal commands with params*/
 
-		if (debug_global){ printf("PARSE: Adding parameter: %s\n", commands[1]); }
-		params = (char*)malloc(strlen(commands[1] + 1));
-		if (params == NULL){
-			fprintf(stderr, "PARSE: Error during malloc!");
-		}
-		strcpy(params, commands[1]);
-		
-		while (commands[i]){
-			if (debug_global){ printf("PARSE: Adding parameter: %s\n", commands[i]); }
-			params = concat_string(params, " ", commands[i]);
+		// Process line and fill struct
+		i++; // increment i to skip the first token since we've already delt with it
+		while (full_line[i]){
+			if (debug_global){ printf("PARSE: Working on item: %s\n", full_line[i]); }
+
+			if (strcmp(full_line[i], ">") == 0){
+				if (debug_global){ printf("PARSE: Adding redirectOut location: %s\n", full_line[i + 1]); }
+				line.redirectOut = malloc(strlen(full_line[i++] + 1) * sizeof(char));
+				strcpy(line.redirectOut, full_line[i]);
+			}
+			else if (strcmp(full_line[i], "<") == 0){
+				if (debug_global){ printf("PARSE: Adding redirectIn location: %s\n", full_line[i + 1]); }
+				line.redirectIn = malloc(strlen(full_line[i + 1] + 1) * sizeof(char));
+				strcpy(line.redirectIn, full_line[i + 1]);
+			}
+			else {
+				if (debug_global){ printf("PARSE: Adding parameter %s\n", full_line[i]); }
+				line.params = concat_string(line.params, " ", full_line[i]);
+			}
 			i++;
 		}
 	}
-	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", commands[0]); }
-	parse_command(commands[0], params, info);
-	//here is where we should redirect output from the parsed_command if applicable
+	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", line.command); }
+	if (debug_global){ display_info(line); }
+	//parse_command(full_line[0], params);
+}
+
+void display_info(command_line line){
+	int i = 0;
+	if (debug_global){ printf("DISPLAY_INFO: Displaying info contained in line struct\n"); }
+	printf("Cmd\t\tParam\t\tOut\t\tIn\t\tType\n");
+	printf("%s\t\t%s\t\t%s\t\t%s\t\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.type);
 }

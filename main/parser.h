@@ -4,14 +4,18 @@
 #ifndef PARSER
 #define PARSER
 
-typedef struct line_info {
-	int type; //0 if relative, 1 if absolute
-	char *redirectionOut; //location to redirect output to, NULL if no redirection
-	int piping; //1 if contains piping, 0 if not
-} line_info;
+typedef struct command_line {
+	char *command; //command
+	char *params; //params
+	char *redirectOut; //location to redirect output to, NULL if no redirection
+	char *redirectIn; //location to redirect output from, NULL if no redirection
+	int type; //type: 0 if relative, 1 if absolute
+	
+} command_line;
 
-extern void parse_command(char *, char *, line_info);
+extern void parse_command(char *, char *, command_line);
 extern void parse(char *);
+extern void display_info(command_line);
 extern char **split(char *, char *, int *);
 extern char *concat_string(char *, char *, char*);
 extern int debug_global;

@@ -23,6 +23,7 @@
 wchar_t *convert_to_wchar(char *input){
 	size_t len = strlen(input) + 1;
 	wchar_t *command_w = malloc(sizeof(wchar_t)* len);
+	if (debug_global > 1){ printf("CONVERT_TO_WCHAR: Input - %ws\n", input); }
 
 	if (command_w == NULL){
 		fprintf(stderr, "Failed to allocate memory.\n");
@@ -30,6 +31,7 @@ wchar_t *convert_to_wchar(char *input){
 	}
 
 	swprintf(command_w, len, L"%hs", input);
+	if (debug_global > 1){ printf("CONVERT_TO_WCHAR: Output - %s\n", command_w); }
 	return command_w;
 }
 
@@ -40,7 +42,7 @@ wchar_t *convert_to_wchar(char *input){
 */
 char *convert_to_char(wchar_t *input){
 	size_t len = wcslen(input) + 1;
-	if (debug_global){ printf("CONVERT_TO_CHAR: Input - %ws\n", input); }
+	if (debug_global > 1){ printf("CONVERT_TO_CHAR: Input - %ws\n", input); }
 	char *command_c = malloc(sizeof(char)* len);
 
 	if (command_c == NULL){
@@ -49,7 +51,7 @@ char *convert_to_char(wchar_t *input){
 	}
 
 	wcstombs(command_c, input, len);
-	if (debug_global){ printf("CONVERT_TO_CHAR: Output - %s\n", command_c); }
+	if (debug_global > 1){ printf("CONVERT_TO_CHAR: Output - %s\n", command_c); }
 	return command_c;
 }
 
@@ -60,7 +62,7 @@ char *convert_to_char(wchar_t *input){
 char *get_system_dir(void){
 	size_t size = 100;
 	wchar_t buffer[100];
-	if (debug_global){ printf("GET_SYSTEM_DIR: Getting system dir...\n"); }
+	if (debug_global > 1){ printf("GET_SYSTEM_DIR: Getting system dir...\n"); }
 	if (!GetSystemDirectory(buffer, size)){
 		printf("GET_SYSTEM_DIR: Error getting system dir!\n");
 		exit(EXIT_FAILURE);
@@ -91,16 +93,14 @@ char *get_command_ext(char *command){
 * Parameter: Command to check.
 * Return: An integer indicating whether it's a command (0) or a path (1)
 */
-int get_command_type(char *command, line_info info){
+int get_command_type(char *command){
 	if (debug_global){ printf("GET_COMMAND_TYPE: Input: %s\n", command); }
 	if (command[1] == ':'){
 		if (debug_global){ printf("GET_COMMAND_TYPE: It's a path.\n"); }
-		info.type = 1;
-		return EXIT_SUCCESS;
+		return 1;
 	}
 	if (debug_global){ printf("GET_COMMAND_TYPE: It's a command.\n"); }
-	info.type = 0;
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 /* -------WINDOWS------
