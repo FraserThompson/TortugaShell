@@ -108,10 +108,9 @@ char **split(char *str, char *delimiter, int *last_index) {
 * Parses a single command
 * Parameters: Command to parse, parameters string, type of command)
 */
-void parse_command(char *command, char *params) {
+void parse_command(command_line line) {
 	int error = 0;
 	int i = 0;
-	int type = 0;
 	char *command_dir; // Command with dir on front
         char *argv;
 	char *command_ext; // Command with ext on end
@@ -119,24 +118,24 @@ void parse_command(char *command, char *params) {
 	char *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	char *dirs[NUM_DIRS] = { path_commands, system_dir, "./"};
 
-	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", command, params, type); }
+	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", line.command, line.params, line.type); }
 
 	// Processing a relative path
-	if (type == 0) {
+	if (line.type == 0) {
 
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
-			command_dir = concat_string(dirs[i], command, NULL); // Add directory to front
+			command_dir = concat_string(dirs[i], line.command, NULL); // Add directory to front
                         argv = command_dir; // Set the argument as the path to the command
 			command_ext = get_command_ext(command_dir); // Add extension to end
 			i++;
                         
                         // If there's a parameter add it on to the argv string
-                        if (params){
-                            argv = concat_string(argv, " ", params);
+                        if (line.params){
+                            argv = concat_string(argv, " ", line.params);
                         }
                         
-			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, params); }
+			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, line.params); }
 
 			error = create_process(command_dir, argv);
                         
@@ -150,7 +149,7 @@ void parse_command(char *command, char *params) {
 				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
 				// Try again with the extension
 				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
-				error = create_process(command_ext, params); 
+				error = create_process(command_ext, line.params); 
 				// If it's all good
 				if (error == 0) {
 					return;
@@ -166,17 +165,17 @@ void parse_command(char *command, char *params) {
 	}
 
 	// Processing a full path
-	if (type == 1){
-		error = create_process(command, params);
-		if (params){
-			params = concat_string(command, " ", params);
+	if (line.type == 1){
+		error = create_process(line.command, line.params);
+		if (line.params){
+			line.params = concat_string(line.command, " ", line.params);
 		}
 		if (error == 0) {
 			return;
 		}
 	}
 
-	printf("'%s' does not exist.\n", command);
+	printf("'%s' does not exist.\n", line.command);
 }
 
 /* -----CROSS PLATFORM----
@@ -187,7 +186,7 @@ void parse(char *cmdline) {
 	char **full_line;
 	int last_index = 0;
 	int i = 0;
-	command_line line = { NULL, "", NULL, NULL, NULL };
+	command_line line = { NULL, "", NULL, NULL, NULL, NULL };
 
 	/*Split the raw line into tokens for processing*/
 	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
@@ -248,12 +247,12 @@ void parse(char *cmdline) {
 	}
 	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", line.command); }
 	if (debug_global){ display_info(line); }
-	//parse_command(full_line[0], params);
+	parse_command(line);
 }
 
 void display_info(command_line line){
 	int i = 0;
 	if (debug_global){ printf("DISPLAY_INFO: Displaying info contained in line struct\n"); }
-	printf("Cmd\t\tParam\t\tOut\t\tIn\t\tType\n");
-	printf("%s\t\t%s\t\t%s\t\t%s\t\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.type);
+	printf("Cmd\t\tParam\t\tOut\t\tIn\tPipe\tType\n");
+	printf("%s\t\t%s\t\t%s\t\t%s\t%s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
 }
