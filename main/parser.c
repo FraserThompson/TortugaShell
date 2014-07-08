@@ -112,7 +112,7 @@ void parse_command(command_line line) {
 	int error = 0;
 	int i = 0;
 	char *command_dir; // Command with dir on front
-        char *argv;
+    char *argv;
 	char *command_ext; // Command with ext on end
 	char *path_commands = get_commands_dir(); // PATH/commands/
 	char *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
@@ -120,41 +120,43 @@ void parse_command(command_line line) {
 
 	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", line.command, line.params, line.type); }
 
-	// Processing a relative path
+	/* Processing a relative path */
 	if (line.type == 0) {
 
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
 			command_dir = concat_string(dirs[i], line.command, NULL); // Add directory to front
-                        argv = command_dir; // Set the argument as the path to the command
+            argv = command_dir; // Set the argument as the path to the command
 			command_ext = get_command_ext(command_dir); // Add extension to end
 			i++;
                         
-                        // If there's a parameter add it on to the argv string
-                        if (line.params){
-                            argv = concat_string(argv, " ", line.params);
-                        }
+			// If there's a parameter add it on to the argv string
+			if (line.params){
+				argv = concat_string(argv, " ", line.params);
+			}
                         
 			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, line.params); }
 
 			error = create_process(command_dir, argv);
                         
-			// If it's all good
+			// No errors
 			if (error == 0) {
+				// This is where redirection shuld probably happen somehow?
 				return;
 			}
 
-			// If it's not all good
+			// Errors
 			else {
 				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
 				// Try again with the extension
 				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
 				error = create_process(command_ext, line.params); 
-				// If it's all good
+				// No errors
 				if (error == 0) {
+					// This is where redirection shuld probably happen somehow?
 					return;
 				}
-				// If it's not all good
+				// Errors
 				else {
 					if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
 				}
@@ -164,7 +166,7 @@ void parse_command(command_line line) {
 
 	}
 
-	// Processing a full path
+	/* Processing an absolute path */
 	if (line.type == 1){
 		error = create_process(line.command, line.params);
 		if (line.params){
@@ -193,12 +195,12 @@ void parse(char *cmdline) {
 	full_line = split(cmdline, " ", &last_index);
 	if (debug_global){ printf("PARSE: First item: %s\n", full_line[0]); }
 
-	/*First token will be a command so add it and check type*/
+	/*First token will always be a command so add it to the struct and check type*/
 	line.command = malloc(strlen(full_line[i] + 1) * sizeof(char));
 	strcpy(line.command, full_line[i]);
 	line.type = get_command_type(full_line[i]);
 
-    /* Begin internal commands */
+    /* Checking for internal commands */
 	if (strcmp(line.command, "cwd") == 0){
 		if (debug_global){ printf("PARSE: Got cwd, printing cwd.\n"); }
 		printf("%s\n", getCWD());
@@ -209,22 +211,19 @@ void parse(char *cmdline) {
 		print_help();
 		if (debug_global){ printf("PARSE: Done with help, continuing.\n"); }
 	}
-    /* End internal commands */
  
-	// If there's more than one token
+	/* If there's more than one token */
 	if (last_index > 1){
-		/* Begin internal commands with params*/
-		// cd
+		/* Internal commands with params*/
 		if (strcmp(line.command, "cd") == 0){
 			if (debug_global){ printf("PARSE: Got cd, changing directory.\n"); }
 			cd(full_line[1]);
 			if (debug_global){ printf("PARSE: Done with cd, returning.\n"); }
 			return;
 		}
-		/* End internal commands with params*/
 
-		// Process line and fill struct
 		i++; // increment i to skip the first token since we've already delt with it
+		/* Process line and populate struct */
 		while (full_line[i]){
 			if (debug_global){ printf("PARSE: Working on item: %s\n", full_line[i]); }
 
