@@ -15,6 +15,12 @@
 #include "../process_mgmt.h"
 #include "../parser.h"
 
+HANDLE hChildStdoutRd = NULL;
+HANDLE hChildStdoutWr = NULL;
+HANDLE hChildStdinRd = NULL;
+HANDLE hChildStdinWr = NULL;
+HANDLE hStdout = NULL;
+
 /* -------WINDOWS------
 * Converts a normal array of char into an array of wide char because Windows
 * Parameter: String to convert
@@ -104,22 +110,87 @@ int get_command_type(char *command){
 }
 
 /* -------WINDOWS------
+* Writes to a child processes pipe
+* Parameters: String to write
+* Return: Error code, 0 if success.
+*/
+int write_to_pipe(char *content){
+	DWORD dwWritten;
+	char chBuf[256];
+	strcpy(chBuf, content);
+
+	if (!WriteFile(hChildStdinWr, chBuf, 256, &dwWritten, NULL)){
+		fprintf(stderr, "WRITE_TO_PIPE: Error writing to pipe.\n");
+		return EXIT_FAILURE;
+	}
+	if (debug_global){ printf("WRITE_TO_PIPE: Writing %s to pipe...\n", chBuf); }
+
+
+	if (!CloseHandle(hChildStdinWr)){
+		fprintf(stderr, "WRITE_TO_PIPE: Error closing pipe.\n");
+		return EXIT_FAILURE;
+	}
+
+	if (debug_global){ printf("WRITE_TO_PIPE: Done\n"); }
+}
+
+/* -------WINDOWS------
+* Reads from a child processes pipe
+* Parameters: String to write
+* Return: Error code, 0 if success.
+*/
+char* read_from_pipe(){
+	DWORD dwRead, dwWritten;
+	CHAR chBuf[256];
+
+	if (!CloseHandle(hChildStdoutWr)){
+		fprintf(stderr, "READ_FROM_PIPE: Error closing pipe.\n");
+	}
+	for (;;){
+		if (!ReadFile(hChildStdoutRd, chBuf, 256, &dwRead, NULL) || dwRead == 0) break;
+		if (!WriteFile(hStdout, chBuf, dwRead, &dwWritten, NULL)) break;
+	}
+	return chBuf;
+}
+
+/* -------WINDOWS------
 * Creates a process in Windows.
 * Parameters: Location of process to spawn, parameters
 * Return: Error code, 0 if success.
 */
-int create_process(char *command, char *params) {
+int create_process(char *command, char *params, char *redirectIn, char *redirectOut) {
 	int error = 0;
-	wchar_t *param_wchar = NULL;
-	wchar_t *command_wchar = NULL;
-
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
-	ZeroMemory(&si, sizeof(si));
-	si.cb = sizeof(si);
-	ZeroMemory(&pi, sizeof(pi));
+	SECURITY_ATTRIBUTES as;
+	wchar_t *param_wchar = NULL;
+	wchar_t *command_wchar = NULL;
+	hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetHandleInformation(hChildStdinWr, HANDLE_FLAG_INHERIT, 0);
 
-	if (debug_global){ printf("CREATE_PROCESS_WIN: Creating process in Windows %s with parameter %s\n", command, params); }
+	ZeroMemory(&si, sizeof(si));
+	ZeroMemory(&pi, sizeof(pi));
+	
+	si.cb = sizeof(si);
+	si.hStdError = hChildStdoutWr;
+	si.hStdOutput = hChildStdoutWr;
+	si.hStdInput = hChildStdinRd;
+	si.dwFlags = STARTF_USESTDHANDLES;
+
+	as.nLength = sizeof(as);
+	as.lpSecurityDescriptor = NULL;
+	as.bInheritHandle = TRUE;
+
+	if (!CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &as, 0)){
+		fprintf(stderr, "CREATE_PROCESS: Failed to create stdout pipe.\n");
+	}
+
+	if (!CreatePipe(&hChildStdinRd, &hChildStdinWr, &as, 0)){
+		fprintf(stderr, "CREATE_PROCESS: Failed to create stdin pipe.\n");
+	}
+
+
+	if (debug_global){ printf("CREATE_PROCESS: Creating process in Windows %s with parameter %s\n", command, params); }
 
 	if (params){
 		param_wchar = convert_to_wchar(params);
@@ -139,3 +210,4 @@ int create_process(char *command, char *params) {
 
 	return error;
 }
+

@@ -53,7 +53,7 @@ void print_help(void){
 			{
 				continue;
 			} else {
-				error = create_process(convert_to_char(sPath), "-h");
+				error = create_process(convert_to_char(sPath), "-h", NULL, NULL);
 				if (error != 0) {
 					printf("PRINT_HELP: Could not open.\n");
 					return;

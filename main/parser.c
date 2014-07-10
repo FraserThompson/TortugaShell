@@ -18,6 +18,7 @@
 #include "parser.h"
 #include "process_mgmt.h"
 
+
 /* -----CROSS PLATFORM----
 * Concatenates up to three strings.
 * Parameter: First string, second string, third string (or null).
@@ -47,7 +48,7 @@ char *concat_string(char *first, char *second, char *third){
 	strncat(result, second, second_len);
 
 	if (third){
-		if (debug_global) { printf("CONCAT_STRING: Adding third: %s\n", third);  }
+		if (debug_global > 1) { printf("CONCAT_STRING: Adding third: %s\n", third);  }
 		strncat(result, third, third_len);
 	}
 
@@ -134,26 +135,21 @@ void parse_command(command_line line) {
 			if (line.params){
 				argv = concat_string(argv, " ", line.params);
 			}
-                        
-			if (debug_global){ printf("PARSE_COMMAND: Trying to create %s as a process with params %s\n", command_dir, line.params); }
 
-			error = create_process(command_dir, argv);
+			error = create_process(command_dir, argv, line.redirectIn, line.redirectOut);
                         
 			// No errors
 			if (error == 0) {
-				// This is where redirection shuld probably happen somehow?
 				return;
 			}
-
 			// Errors
 			else {
 				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
 				// Try again with the extension
 				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
-				error = create_process(command_ext, line.params); 
+				error = create_process(command_ext, line.params, line.redirectIn, line.redirectOut);
 				// No errors
 				if (error == 0) {
-					// This is where redirection shuld probably happen somehow?
 					return;
 				}
 				// Errors
@@ -168,16 +164,25 @@ void parse_command(command_line line) {
 
 	/* Processing an absolute path */
 	if (line.type == 1){
-		error = create_process(line.command, line.params);
 		if (line.params){
-			line.params = concat_string(line.command, " ", line.params);
+			argv = concat_string(line.command, " ", line.params);
 		}
+
+		error = create_process(line.command, argv, line.redirectIn, line.redirectOut);
+
 		if (error == 0) {
+			if (line.redirectOut){
+				if (debug_global){ printf("CREATE_PROCESS: Redirecting output to %s\n", line.redirectOut); }
+				printf("%ws\n", read_from_pipe());
+			}
 			return;
 		}
 	}
 
+
 	printf("'%s' does not exist.\n", line.command);
+
+	return;
 }
 
 /* -----CROSS PLATFORM----
@@ -193,7 +198,7 @@ void parse(char *cmdline) {
 	/*Split the raw line into tokens for processing*/
 	if (debug_global){ printf("PARSE: Input: %s\n", cmdline); }
 	full_line = split(cmdline, " ", &last_index);
-	if (debug_global){ printf("PARSE: First item: %s\n", full_line[0]); }
+	if (debug_global > 1){ printf("PARSE: First item: %s\n", full_line[0]); }
 
 	/*First token will always be a command so add it to the struct and check type*/
 	line.command = malloc(strlen(full_line[i] + 1) * sizeof(char));
@@ -205,11 +210,13 @@ void parse(char *cmdline) {
 		if (debug_global){ printf("PARSE: Got cwd, printing cwd.\n"); }
 		printf("%s\n", getCWD());
 		if (debug_global){ printf("PARSE: Done with cwd, continuing.\n"); }
+		return;
 	}
 	else if (strcmp(line.command, "help") == 0){
 		if (debug_global){ printf("PARSE: Got help, printing help.\n"); }
 		print_help();
 		if (debug_global){ printf("PARSE: Done with help, continuing.\n"); }
+		return;
 	}
  
 	/* If there's more than one token */
@@ -225,7 +232,7 @@ void parse(char *cmdline) {
 		i++; // increment i to skip the first token since we've already delt with it
 		/* Process line and populate struct */
 		while (full_line[i]){
-			if (debug_global){ printf("PARSE: Working on item: %s\n", full_line[i]); }
+			if (debug_global > 1){ printf("PARSE: Working on item: %s\n", full_line[i]); }
 
 			if (strcmp(full_line[i], ">") == 0){
 				if (debug_global){ printf("PARSE: Adding redirectOut location: %s\n", full_line[i + 1]); }
