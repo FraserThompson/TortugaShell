@@ -113,7 +113,7 @@ void parse_command(command_line line) {
 	int error = 0;
 	int i = 0;
 	char *command_dir; // Command with dir on front
-    char *argv;
+    char *argv; // String list of args
 	char *command_ext; // Command with ext on end
 	char *path_commands = get_commands_dir(); // PATH/commands/
 	char *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
@@ -136,7 +136,9 @@ void parse_command(command_line line) {
 				argv = concat_string(argv, " ", line.params);
 			}
 
-			error = create_process(command_dir, argv, line.redirectIn, line.redirectOut);
+			line.params = argv;
+			line.command = command_dir;
+			error = create_process(line);
                         
 			// No errors
 			if (error == 0) {
@@ -147,7 +149,8 @@ void parse_command(command_line line) {
 				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
 				// Try again with the extension
 				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
-				error = create_process(command_ext, line.params, line.redirectIn, line.redirectOut);
+				line.command = command_ext;
+				error = create_process(line);
 				// No errors
 				if (error == 0) {
 					return;
@@ -167,14 +170,10 @@ void parse_command(command_line line) {
 		if (line.params){
 			argv = concat_string(line.command, " ", line.params);
 		}
-
-		error = create_process(line.command, argv, line.redirectIn, line.redirectOut);
+		line.params = argv;
+		error = create_process(line);
 
 		if (error == 0) {
-			if (line.redirectOut){
-				if (debug_global){ printf("CREATE_PROCESS: Redirecting output to %s\n", line.redirectOut); }
-				printf("%ws\n", read_from_pipe());
-			}
 			return;
 		}
 	}
