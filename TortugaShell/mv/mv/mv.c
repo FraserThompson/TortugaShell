@@ -16,7 +16,7 @@
 */
 int main(int argc, char *argv[]){
 	int i = 0;
-	int fd1, fd2, count, c;
+	int fd1, fd2, count;
 	char buf[512];
 
 
@@ -49,4 +49,5 @@ int main(int argc, char *argv[]){
 		close(fd2);
 		close(fd1);
 	}
+	return EXIT_SUCCESS;
 }
