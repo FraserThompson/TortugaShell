@@ -112,6 +112,8 @@ char **split(char *str, char *delimiter, int *last_index) {
 void parse_command(command_line line) {
 	int error = 0;
 	int i = 0;
+	char *param_orig = line.params;
+	char *command_orig = line.command; //untouched command
 	char *command_dir; // Command with dir on front
     char *argv; // String list of args
 	char *command_ext; // Command with ext on end
@@ -119,27 +121,27 @@ void parse_command(command_line line) {
 	char *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	char *dirs[NUM_DIRS] = { path_commands, system_dir, "./"};
 
-	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s %i\n", line.command, line.params, line.type); }
+	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s", line.command, line.params); }
 
 	/* Processing a relative path */
 	if (line.type == 0) {
-
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
-			command_dir = concat_string(dirs[i], line.command, NULL); // Add directory to front
+			command_dir = concat_string(dirs[i], command_orig, NULL); // Add directory to front
             argv = command_dir; // Set the argument as the path to the command
 			command_ext = get_command_ext(command_dir); // Add extension to end
 			i++;
                         
 			// If there's a parameter add it on to the argv string
-			if (line.params){
+			if (param_orig){
+				if (debug_global){ printf("PARSE_COMMAND: There are parameters. Adding them to the argv."); }
 				argv = concat_string(argv, " ", line.params);
 			}
 
 			line.params = argv;
 			line.command = command_dir;
 			error = create_process(line);
-                        
+
 			// No errors
 			if (error == 0) {
 				return;
@@ -147,7 +149,6 @@ void parse_command(command_line line) {
 			// Errors
 			else {
 				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
-				// Try again with the extension
 				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
 				line.command = command_ext;
 				error = create_process(line);
@@ -167,20 +168,20 @@ void parse_command(command_line line) {
 
 	/* Processing an absolute path */
 	if (line.type == 1){
-		if (line.params){
+
+		if (param_orig){
 			argv = concat_string(line.command, " ", line.params);
 		}
 		line.params = argv;
 		error = create_process(line);
 
+		// No errors
 		if (error == 0) {
 			return;
 		}
 	}
 
-
 	printf("'%s' does not exist.\n", line.command);
-
 	return;
 }
 
@@ -229,6 +230,7 @@ void parse(char *cmdline) {
 		}
 
 		i++; // increment i to skip the first token since we've already delt with it
+
 		/* Process line and populate struct */
 		while (full_line[i]){
 			if (debug_global > 1){ printf("PARSE: Working on item: %s\n", full_line[i]); }
@@ -250,6 +252,7 @@ void parse(char *cmdline) {
 			i++;
 		}
 	}
+	line.params = strcmp(line.params, "") != 0 ? line.params : NULL; //Set params to NULL if empty
 	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", line.command); }
 	if (debug_global){ display_info(line); }
 	parse_command(line);
@@ -258,6 +261,6 @@ void parse(char *cmdline) {
 void display_info(command_line line){
 	int i = 0;
 	if (debug_global){ printf("DISPLAY_INFO: Displaying info contained in line struct\n"); }
-	printf("Cmd\t\tParam\t\tOut\t\tIn\tPipe\tType\n");
-	printf("%s\t\t%s\t\t%s\t\t%s\t%s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
+	printf("Cmd\tParam\tOut\tIn\tPipe\tType\n");
+	printf("%s\t%s\t%s\t\t%s\t%s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
 }

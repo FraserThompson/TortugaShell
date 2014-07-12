@@ -135,9 +135,8 @@ int write_to_pipe(char *content){
 }
 
 /* -------WINDOWS------
-* Reads from a child processes pipe
-* Parameters: Location to read to
-* Return: Error code, 0 if success.
+* Reads from a child processes pipe and write to a specified file
+* Parameters: Location to write to
 */
 void read_from_pipe(out_file){
 	DWORD dwRead, dwWritten;
@@ -145,13 +144,8 @@ void read_from_pipe(out_file){
 	BOOL success = FALSE;
 	HANDLE parent_out = NULL;
 
-	if (!out_file){
-		parent_out = GetStdHandle(STD_OUTPUT_HANDLE);
-	}
-	else {
-		// Open handle to output file
-		parent_out = CreateFile(out_file, FILE_READ_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, 0, NULL);
-	}
+	// Open handle to output file
+	parent_out = CreateFile(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	// Close write end of pipe before reading read end
 	if (!CloseHandle(child_out_write)){
@@ -159,13 +153,13 @@ void read_from_pipe(out_file){
 		return;
 	}
 
-	// Start reading
+	// Start reading each thing in the thing and writing to the place
 	for (;;){
 		success = ReadFile(child_out_read, chBuf, BUFSIZE, &dwRead, NULL);
 		if (!success || dwRead == 0) {
 			if (GetLastError() == 109){
 				if (debug_global){ printf("READ_FROM_PIPE: Finished.\n"); }
-				return;
+				break;
 			}
 			fprintf(stderr, "READ_FROM_PIPE: Error %u when reading pipe.\n", GetLastError());
 			break;
@@ -183,11 +177,21 @@ void read_from_pipe(out_file){
 			if (debug_global){ printf("READ_FROM_PIPE: Succesfully wrote '%s' to output pipe\n", chBuf); }
 		}
 	}
-	if (!CloseHandle(child_in_write))
-		fprintf(stderr, "READ_FROM_PIPE: Error %u when closing handle.", GetLastError());
+
+	/*if (!CloseHandle(child_in_write))
+		fprintf(stderr, "READ_FROM_PIPE: Error %u when closing child input handle.\n", GetLastError());
 	else {
-		if (debug_global){ printf("READ_FROM_PIPE: Pipe handle closed.\n"); }
+		if (debug_global){ printf("READ_FROM_PIPE: Child input pipe handle closed.\n"); }
+	}*/
+
+	if (!CloseHandle(parent_out)){
+		fprintf(stderr, "READ_FROM_PIPE: Error %u when closing output handle.", GetLastError());
 	}
+	else {
+		if (debug_global){ printf("READ_FROM_PIPE: Output pipe handle closed.\n"); }
+	}
+
+	return;
 }
 
 /* -------WINDOWS------
@@ -208,25 +212,32 @@ int create_process(command_line line) {
 	sa.lpSecurityDescriptor = NULL;
 	sa.bInheritHandle = TRUE;
 
-	if (debug_global){ printf("\n*CREATE_PROCESS: Parent process ID %u\n", GetCurrentProcessId()); }
+	if (debug_global){ printf("\nCREATE_PROCESS: Parent process ID %u\n", GetCurrentProcessId()); }
+	if (debug_global) { printf("CREATE_PROCESS: Parent thread ID: %u\n", GetCurrentThreadId()); }
 
 	// Create pipe for child process stdout
-	if (!CreatePipe(&child_out_read, &child_out_write, &sa, 0)){
-		fprintf(stderr, "CREATE_PROCESS: Failed to create stdout pipe.\n");
+	if (line.redirectOut){
+		if (!CreatePipe(&child_out_read, &child_out_write, &sa, 0)){
+			fprintf(stderr, "CREATE_PROCESS: Failed to create stdout pipe.\n");
+		}
+		else {
+			if (debug_global){ printf("CREATE_PROCESS: Stdout pipe created.\n"); }
+		}
+		SetHandleInformation(child_in_write, HANDLE_FLAG_INHERIT, 0);
+		redirectOut_wchar = convert_to_wchar(line.redirectOut);
 	}
-	else {
-		if (debug_global){ printf("CREATE_PROCESS: Stdout pipe created.\n"); }
-	}
-	SetHandleInformation(child_in_write, HANDLE_FLAG_INHERIT, 0);
 
 	// Create pipe for child process stdin
-	if (!CreatePipe(&child_in_read, &child_in_write, &sa, 0)){
-		fprintf(stderr, "CREATE_PROCESS: Failed to create stdin pipe.\n");
+	if (line.redirectIn){
+		if (!CreatePipe(&child_in_read, &child_in_write, &sa, 0)){
+			fprintf(stderr, "CREATE_PROCESS: Failed to create stdin pipe.\n");
+		}
+		else {
+			if (debug_global){ printf("CREATE_PROCESS: Stdin pipe created.\n"); }
+		}
+		SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
+		redirectIn_wchar = convert_to_wchar(line.redirectIn);
 	}
-	else {
-		if (debug_global){ printf("CREATE_PROCESS: Stdin pipe created.\n"); }
-	}
-	SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
 
 	// Conversion stuff
 	if (line.params){
@@ -236,19 +247,12 @@ int create_process(command_line line) {
 		command_wchar = convert_to_wchar(line.command);
 	}
 
-	/*if (line.redirectIn){
-		redirectIn_wchar = convert_to_wchar(line.redirectIn);
-	}
+	// Spawn process
+	error = create_child(command_wchar, param_wchar, line.redirectOut, line.redirectIn);
 
 	if (line.redirectOut){
-		redirectOut_wchar = convert_to_wchar(line.redirectOut);
-	}*/
-
-	//WaitForSingleObject(pi.hProcess, INFINITE);
-	// Spawn process
-	error = create_child(command_wchar, param_wchar);
-	// Read from pipe
-	read_from_pipe(line.redirectOut);
+		read_from_pipe(redirectOut_wchar);
+	}
 
 	return error;
 }
@@ -258,7 +262,7 @@ int create_process(command_line line) {
 * Parameters: command, args
 * Return: Error code, 0 if success.
 */
-static int create_child(wchar_t *command, wchar_t *param){
+static int create_child(wchar_t *command, wchar_t *param, char *redirectOut, char *redirectIn){
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 	BOOL success = FALSE;
@@ -269,10 +273,17 @@ static int create_child(wchar_t *command, wchar_t *param){
 	// Startup info
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
-	si.hStdError = child_out_write;
-	si.hStdOutput = child_out_write;
-	si.hStdInput = child_in_read;
-	si.dwFlags |= STARTF_USESTDHANDLES;
+
+	if (redirectIn){
+		si.hStdInput = child_in_read;
+		si.dwFlags |= STARTF_USESTDHANDLES;
+	}
+
+	if (redirectOut){
+		si.hStdOutput = child_out_write;
+		si.hStdError = child_out_write;
+		si.dwFlags |= STARTF_USESTDHANDLES;
+	}
 
 	// Spawn process
 	success = CreateProcess(command, param, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
@@ -281,8 +292,12 @@ static int create_child(wchar_t *command, wchar_t *param){
 		error = GetLastError();
 	}
 	else {
+		WaitForSingleObject(pi.hProcess, INFINITE);
 		if (debug_global) { printf("CREATE_CHILD: Child process ID: %u\n", GetCurrentProcessId()); }
+		if (debug_global) { printf("CREATE_CHILD: Child thread ID: %u\n", GetCurrentThreadId()); }
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
 	}
+
+	return error;
 }
