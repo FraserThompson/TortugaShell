@@ -112,7 +112,7 @@ char **split(char *str, char *delimiter, int *last_index) {
 void parse_command(command_line line) {
 	int error = 0;
 	int i = 0;
-	char *param_orig = line.params;
+	char *param_orig = line.params; //untouched params
 	char *command_orig = line.command; //untouched command
 	char *command_dir; // Command with dir on front
     char *argv; // String list of args
@@ -121,25 +121,26 @@ void parse_command(command_line line) {
 	char *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	char *dirs[NUM_DIRS] = { path_commands, system_dir, "./"};
 
-	if (debug_global){ printf("PARSE_COMMAND: Input: %s %s", line.command, line.params); }
+	if (debug_global) printf("PARSE_COMMAND: Input: %s %s\n", line.command, line.params); 
 
 	/* Processing a relative path */
 	if (line.type == 0) {
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
-			command_dir = concat_string(dirs[i], command_orig, NULL); // Add directory to front
-            argv = command_dir; // Set the argument as the path to the command
-			command_ext = get_command_ext(command_dir); // Add extension to end
+			command_dir = concat_string(dirs[i], command_orig, NULL); // Original command with the directory on the front
+            argv = command_dir; // First argument is always the path to the file
+			command_ext = get_command_ext(command_dir); // Command with dir on front and extension on the end
 			i++;
                         
 			// If there's a parameter add it on to the argv string
 			if (param_orig){
-				if (debug_global){ printf("PARSE_COMMAND: There are parameters. Adding them to the argv."); }
+				if (debug_global) printf("PARSE_COMMAND: There are parameters. Adding them to the argv.\n"); 
 				argv = concat_string(argv, " ", line.params);
 			}
 
 			line.params = argv;
 			line.command = command_dir;
+
 			error = create_process(line);
 
 			// No errors
@@ -148,8 +149,8 @@ void parse_command(command_line line) {
 			}
 			// Errors
 			else {
-				if (debug_global){ printf("PARSE_COMMAND: Unable to create process error %i\n", error); }
-				if (debug_global){ printf("PARSE_COMMAND: Trying again with extension on the end\n"); }
+				if (debug_global) printf("PARSE_COMMAND: Unable to create process error %i\n", error); 
+				if (debug_global) printf("PARSE_COMMAND: Trying again with extension on the end\n"); 
 				line.command = command_ext;
 				error = create_process(line);
 				// No errors
@@ -172,7 +173,12 @@ void parse_command(command_line line) {
 		if (param_orig){
 			argv = concat_string(line.command, " ", line.params);
 		}
+		else {
+			argv = line.command;
+		}
+
 		line.params = argv;
+
 		error = create_process(line);
 
 		// No errors
@@ -233,34 +239,34 @@ void parse(char *cmdline) {
 
 		/* Process line and populate struct */
 		while (full_line[i]){
-			if (debug_global > 1){ printf("PARSE: Working on item: %s\n", full_line[i]); }
+			if (debug_global > 1) printf("PARSE: Working on item: %s\n", full_line[i]); 
 
 			if (strcmp(full_line[i], ">") == 0){
-				if (debug_global){ printf("PARSE: Adding redirectOut location: %s\n", full_line[i + 1]); }
-				line.redirectOut = malloc(strlen(full_line[i++] + 1) * sizeof(char));
+				if (debug_global) printf("PARSE: Adding redirectOut location: %s\n", full_line[i + 1]); 
+				line.redirectOut = malloc(strlen(full_line[++i]) * sizeof(char));
 				strcpy(line.redirectOut, full_line[i]);
 			}
 			else if (strcmp(full_line[i], "<") == 0){
-				if (debug_global){ printf("PARSE: Adding redirectIn location: %s\n", full_line[i + 1]); }
-				line.redirectIn = malloc(strlen(full_line[i + 1] + 1) * sizeof(char));
-				strcpy(line.redirectIn, full_line[i + 1]);
+				if (debug_global) printf("PARSE: Adding redirectIn location: %s\n", full_line[i + 1]); 
+				line.redirectIn = malloc(strlen(full_line[++i]) * sizeof(char));
+				strcpy(line.redirectIn, full_line[i]);
 			}
 			else {
-				if (debug_global){ printf("PARSE: Adding parameter %s\n", full_line[i]); }
+				if (debug_global) printf("PARSE: Adding parameter %s\n", full_line[i]); 
 				line.params = concat_string(line.params, " ", full_line[i]);
 			}
 			i++;
 		}
 	}
 	line.params = strcmp(line.params, "") != 0 ? line.params : NULL; //Set params to NULL if empty
-	if (debug_global){ printf("PARSE: Sending %s to parse_command for execution\n", line.command); }
-	if (debug_global){ display_info(line); }
+	if (debug_global) printf("PARSE: Sending %s to parse_command for execution\n", line.command); 
+	if (debug_global) display_info(line); 
 	parse_command(line);
 }
 
 void display_info(command_line line){
 	int i = 0;
-	if (debug_global){ printf("DISPLAY_INFO: Displaying info contained in line struct\n"); }
-	printf("Cmd\tParam\tOut\tIn\tPipe\tType\n");
-	printf("%s\t%s\t%s\t\t%s\t%s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
+	if (debug_global) printf("DISPLAY_INFO: Displaying info contained in line struct\n"); 
+	printf("%-10s\t%-5s\t%-10s\t%-10s\t%-10s\t%-5s\n", "Command", "Argv", "redirectOut", "redirectIn", "pipe", "type");
+	printf("%-10s\t%-5s\t%-10s\t%-10s\t%-10s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
 }

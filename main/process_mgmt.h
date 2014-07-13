@@ -12,7 +12,7 @@ extern char *get_command_ext(char *);
 extern int get_command_type(char *);
 extern wchar_t *convert_to_wchar(char *);
 extern char *convert_to_char(wchar_t *);
-extern int write_to_pipe(char *);
+extern int write_to_pipe(HANDLE);
 extern void read_from_pipe(char *);
 
 #endif

@@ -27,9 +27,10 @@ HANDLE child_in_write = NULL;
 * Return: Wchar version of input
 */
 wchar_t *convert_to_wchar(char *input){
+	if (debug_global > 1) { printf("CONVERT_TO_WCHAR: Input - %s\n", input); }
+
 	size_t len = strlen(input) + 1;
 	wchar_t *command_w = malloc(sizeof(wchar_t)* len);
-	if (debug_global > 1){ printf("CONVERT_TO_WCHAR: Input - %ws\n", input); }
 
 	if (command_w == NULL){
 		fprintf(stderr, "Failed to allocate memory.\n");
@@ -37,7 +38,7 @@ wchar_t *convert_to_wchar(char *input){
 	}
 
 	swprintf(command_w, len, L"%hs", input);
-	if (debug_global > 1){ printf("CONVERT_TO_WCHAR: Output - %s\n", command_w); }
+	if (debug_global > 1) printf("CONVERT_TO_WCHAR: Output - %ws\n", command_w); 
 	return command_w;
 }
 
@@ -47,8 +48,9 @@ wchar_t *convert_to_wchar(char *input){
 * Return: Wchar version of input
 */
 char *convert_to_char(wchar_t *input){
-	size_t len = wcslen(input) + 1;
 	if (debug_global > 1){ printf("CONVERT_TO_CHAR: Input - %ws\n", input); }
+
+	size_t len = wcslen(input) + 1;
 	char *command_c = malloc(sizeof(char)* len);
 
 	if (command_c == NULL){
@@ -111,27 +113,41 @@ int get_command_type(char *command){
 
 /* -------WINDOWS------
 * Writes to a child processes pipe
-* Parameters: String to put into the pipe
+* Parameters: Location of file to put into the pipe
 * Return: Error code, 0 if success.
 */
-int write_to_pipe(char *content){
-	DWORD dwWritten;
+int write_to_pipe(HANDLE inputFile){
+	DWORD dwWritten, dwRead;
+	int error;
 	char chBuf[BUFSIZE];
-	strcpy(chBuf, content);
 
-	if (!WriteFile(child_in_write, chBuf, BUFSIZE, &dwWritten, NULL)){
-		fprintf(stderr, "WRITE_TO_PIPE: Error writing to pipe.\n");
-		return EXIT_FAILURE;
+	for (;;)
+	{
+		if (!ReadFile(inputFile, chBuf, BUFSIZE, &dwRead, NULL) || dwRead == 0) {
+			error = GetLastError();
+			if (error == 0){
+				break;
+			}
+			fprintf(stderr, "WRITE_TO_PIPE: Error %u when reading file.\n", error);
+			break;
+		}
+
+		chBuf[dwRead] = NULL; //add terminating character
+		if (debug_global) printf("WRITE_TO_PIPE: Writing %s to pipe.\n", chBuf);
+
+		if (!WriteFile(child_in_write, chBuf, dwRead, &dwWritten, NULL)) {
+			error = GetLastError();
+			fprintf(stderr, "WRITE_TO_PIPE: Error %u when writing file to pipe.\n", error);
+			break;
+		}
 	}
-	if (debug_global){ printf("WRITE_TO_PIPE: Writing %s to pipe...\n", chBuf); }
-
 
 	if (!CloseHandle(child_in_write)){
 		fprintf(stderr, "WRITE_TO_PIPE: Error closing pipe.\n");
 		return EXIT_FAILURE;
 	}
 
-	if (debug_global){ printf("WRITE_TO_PIPE: Done\n"); }
+	if (debug_global) printf("WRITE_TO_PIPE: Done\n"); 
 }
 
 /* -------WINDOWS------
@@ -143,6 +159,7 @@ void read_from_pipe(out_file){
 	CHAR chBuf[BUFSIZE];
 	BOOL success = FALSE;
 	HANDLE parent_out = NULL;
+	int error;
 
 	// Open handle to output file
 	parent_out = CreateFile(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -157,11 +174,12 @@ void read_from_pipe(out_file){
 	for (;;){
 		success = ReadFile(child_out_read, chBuf, BUFSIZE, &dwRead, NULL);
 		if (!success || dwRead == 0) {
-			if (GetLastError() == 109){
+			error = GetLastError();
+			if (error == 109){
 				if (debug_global){ printf("READ_FROM_PIPE: Finished.\n"); }
 				break;
 			}
-			fprintf(stderr, "READ_FROM_PIPE: Error %u when reading pipe.\n", GetLastError());
+			fprintf(stderr, "READ_FROM_PIPE: Error %u when reading pipe.\n", error);
 			break;
 		}
 		else {
@@ -170,7 +188,8 @@ void read_from_pipe(out_file){
 		}
 		success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
 		if (!success) {
-			fprintf(stderr, "READ_FROM_PIPE: Error %u when writing to output pipe\n", GetLastError());
+			error = GetLastError();
+			fprintf(stderr, "READ_FROM_PIPE: Error %u when writing to output pipe\n", error);
 			break;
 		}
 		else {
@@ -202,6 +221,7 @@ void read_from_pipe(out_file){
 int create_process(command_line line) {
 	int error = 0;
 	SECURITY_ATTRIBUTES sa;
+	HANDLE inputFile = NULL;
 	wchar_t *param_wchar = NULL;
 	wchar_t *command_wchar = NULL;
 	wchar_t *redirectIn_wchar = NULL;
@@ -214,6 +234,7 @@ int create_process(command_line line) {
 
 	if (debug_global){ printf("\nCREATE_PROCESS: Parent process ID %u\n", GetCurrentProcessId()); }
 	if (debug_global) { printf("CREATE_PROCESS: Parent thread ID: %u\n", GetCurrentThreadId()); }
+	if (debug_global > 1){ display_info(line); }
 
 	// Create pipe for child process stdout
 	if (line.redirectOut){
@@ -223,11 +244,11 @@ int create_process(command_line line) {
 		else {
 			if (debug_global){ printf("CREATE_PROCESS: Stdout pipe created.\n"); }
 		}
-		SetHandleInformation(child_in_write, HANDLE_FLAG_INHERIT, 0);
+		SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
 		redirectOut_wchar = convert_to_wchar(line.redirectOut);
 	}
 
-	// Create pipe for child process stdin
+	// Create pipe for child process stdin and open handle to file
 	if (line.redirectIn){
 		if (!CreatePipe(&child_in_read, &child_in_write, &sa, 0)){
 			fprintf(stderr, "CREATE_PROCESS: Failed to create stdin pipe.\n");
@@ -235,20 +256,36 @@ int create_process(command_line line) {
 		else {
 			if (debug_global){ printf("CREATE_PROCESS: Stdin pipe created.\n"); }
 		}
-		SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
+		SetHandleInformation(child_in_write, HANDLE_FLAG_INHERIT, 0);
 		redirectIn_wchar = convert_to_wchar(line.redirectIn);
+
+		inputFile = CreateFile(redirectIn_wchar, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+		if (inputFile == INVALID_HANDLE_VALUE) {
+			fprintf(stderr, "CREATE_PROCESS: Failed to create handle to input file '%ws'. Does it exist?\n", redirectIn_wchar);
+			return;
+		}
+		else {
+			if (debug_global) printf("CREATE_PROCESS: Handle to file '%ws' created.\n", redirectIn_wchar);
+		}
 	}
 
 	// Conversion stuff
 	if (line.params){
+		if (debug_global > 1) printf("CREATE_PROCESS: Sending '%s' to be converted to wchar.\n", line.params);
 		param_wchar = convert_to_wchar(line.params);
 	}
 	if (line.command){
+		if (debug_global > 1) printf("CREATE_PROCESS: Sending '%s' to be converted to wchar.\n", line.command);
 		command_wchar = convert_to_wchar(line.command);
 	}
 
 	// Spawn process
 	error = create_child(command_wchar, param_wchar, line.redirectOut, line.redirectIn);
+
+	// Write to the childs input buffer, it'll pick it up
+	if (line.redirectIn){
+		write_to_pipe(inputFile);
+	}
 
 	if (line.redirectOut){
 		read_from_pipe(redirectOut_wchar);
