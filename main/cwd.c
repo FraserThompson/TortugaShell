@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <Windows.h>
 #include <wchar.h>
-#include "../process_mgmt.h"
-#include "../cwd.h"
+#include "process_mgmt.h"
+#include "cwd.h"
 
 /* -------WINDOWS------
 * Returns the CWD in windows

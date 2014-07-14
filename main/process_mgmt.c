@@ -12,8 +12,8 @@
 #include <string.h>
 #include <Windows.h>
 #include <wchar.h>
-#include "../process_mgmt.h"
-#include "../parser.h"
+#include "process_mgmt.h"
+#include "parser.h"
 #define BUFSIZE 4096
 
 HANDLE child_out_read = NULL;

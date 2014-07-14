@@ -12,9 +12,9 @@
 #include <tchar.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../help.h"
-#include "../process_mgmt.h"
-#include "../parser.h"
+#include "help.h"
+#include "process_mgmt.h"
+#include "parser.h"
 
 /* -----WINDOWS----
 * Searches the ./commands directory and prints each filename, and then calls the file with -h to get the help.

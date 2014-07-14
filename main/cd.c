@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <direct.h>
-#include "../parser.h"
-#include "../cd.h"
+#include "parser.h"
+#include "cd.h"
 
 /* -----CROSS-PLATFORM----
 * Changes directory.
