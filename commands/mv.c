@@ -16,7 +16,9 @@
 */
 int main(int argc, char *argv[]){
 	int i = 0;
-	int fd1, fd2, count;
+	FILE *fd1 = NULL;
+	FILE *fd2 = NULL;
+	int count = 0;
 	char buf[512];
 
 
@@ -31,23 +33,26 @@ int main(int argc, char *argv[]){
 
 	if (argc != 3){
 		printf("Please check filename.");
-		exit(1);
+		return EXIT_SUCCESS;
 	}
 	else{
-		fd1 = open(argv[1], O_RDONLY);
-		if (fd1 == -1){
-			printf("File does not exist.");
-			exit(1);
+		fd1 = fopen(argv[1], "r");
+		if (!fd1){
+			fprintf(stderr, "MV: Input file '%s' does not exist.", argv[1]);
+			return EXIT_FAILURE;
 		}
-		fd2 = open(argv[2], O_WRONLY);
-		if (fd2 == -1){
-			fd2 = creat(argv[2], 0666);
+		fd2 = fopen(argv[2], "w+");
+		if (!fd2){
+			fprintf(stderr, "MV: Could not open output file '%s' for writing.\n", argv[2]);
+			return EXIT_FAILURE;
 		}
-		while ((count = read(fd1, buf, 512)) > 0){
-			write(fd2, buf, count);
+
+		while (fgets(buf, sizeof(buf), fd1) != NULL){
+			fprintf(fd2, buf);
 		}
-		close(fd2);
-		close(fd1);
+
+		fclose(fd2);
+		fclose(fd1);
 	}
 	return EXIT_SUCCESS;
 }
