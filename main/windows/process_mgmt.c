@@ -114,7 +114,7 @@ int get_command_type(char *command){
 /* -------WINDOWS------
 * Writes to a child processes pipe
 * Parameters: Location of file to put into the pipe
-* Return: Error code, 0 if success.
+* Return: Error code - 0 if success.
 */
 int write_to_pipe(HANDLE inputFile){
 	DWORD dwWritten, dwRead;
@@ -147,19 +147,20 @@ int write_to_pipe(HANDLE inputFile){
 		return EXIT_FAILURE;
 	}
 
-	if (debug_global) printf("WRITE_TO_PIPE: Done\n"); 
+	return error;
 }
 
 /* -------WINDOWS------
 * Reads from a child processes pipe and write to a specified file
 * Parameters: Location to write to
+* Return: Error code - 0 if success
 */
-void read_from_pipe(out_file){
+int read_from_pipe(out_file){
 	DWORD dwRead, dwWritten;
 	CHAR chBuf[BUFSIZE];
 	BOOL success = FALSE;
 	HANDLE parent_out = NULL;
-	int error;
+	int error = 0;
 
 	// Open handle to output file
 	parent_out = CreateFile(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -167,7 +168,7 @@ void read_from_pipe(out_file){
 	// Close write end of pipe before reading read end
 	if (!CloseHandle(child_out_write)){
 		fprintf(stderr, "READ_FROM_PIPE: Error closing pipe.\n");
-		return;
+		return 1;
 	}
 
 	// Start reading each thing in the thing and writing to the place
@@ -197,12 +198,6 @@ void read_from_pipe(out_file){
 		}
 	}
 
-	/*if (!CloseHandle(child_in_write))
-		fprintf(stderr, "READ_FROM_PIPE: Error %u when closing child input handle.\n", GetLastError());
-	else {
-		if (debug_global){ printf("READ_FROM_PIPE: Child input pipe handle closed.\n"); }
-	}*/
-
 	if (!CloseHandle(parent_out)){
 		fprintf(stderr, "READ_FROM_PIPE: Error %u when closing output handle.", GetLastError());
 	}
@@ -210,16 +205,17 @@ void read_from_pipe(out_file){
 		if (debug_global){ printf("READ_FROM_PIPE: Output pipe handle closed.\n"); }
 	}
 
-	return;
+	return error;
 }
 
 /* -------WINDOWS------
 * Goes through the process of opening handles, creating a process and handling the pipes.
 * Parameters: command_line struct
-* Return: Error code, 0 if success.
+* Return: Error code, 0 if success, 50 if encountered a redirection error
 */
 int create_process(command_line line) {
-	int error = 0;
+	int pError = 0;
+	int rError = 0;
 	SECURITY_ATTRIBUTES sa;
 	HANDLE inputFile = NULL;
 	wchar_t *param_wchar = NULL;
@@ -240,6 +236,7 @@ int create_process(command_line line) {
 	if (line.redirectOut){
 		if (!CreatePipe(&child_out_read, &child_out_write, &sa, 0)){
 			fprintf(stderr, "CREATE_PROCESS: Failed to create stdout pipe.\n");
+			return 3;
 		}
 		else {
 			if (debug_global){ printf("CREATE_PROCESS: Stdout pipe created.\n"); }
@@ -252,6 +249,7 @@ int create_process(command_line line) {
 	if (line.redirectIn){
 		if (!CreatePipe(&child_in_read, &child_in_write, &sa, 0)){
 			fprintf(stderr, "CREATE_PROCESS: Failed to create stdin pipe.\n");
+			return 50;
 		}
 		else {
 			if (debug_global){ printf("CREATE_PROCESS: Stdin pipe created.\n"); }
@@ -262,7 +260,7 @@ int create_process(command_line line) {
 		inputFile = CreateFile(redirectIn_wchar, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
 		if (inputFile == INVALID_HANDLE_VALUE) {
 			fprintf(stderr, "CREATE_PROCESS: Failed to create handle to input file '%ws'. Does it exist?\n", redirectIn_wchar);
-			return;
+			return 50;
 		}
 		else {
 			if (debug_global) printf("CREATE_PROCESS: Handle to file '%ws' created.\n", redirectIn_wchar);
@@ -280,18 +278,68 @@ int create_process(command_line line) {
 	}
 
 	// Spawn process
-	error = create_child(command_wchar, param_wchar, line.redirectOut, line.redirectIn);
+	pError = create_child(command_wchar, param_wchar, line.redirectOut, line.redirectIn);
+
+	// Don't continue if the process wasn't created succesfully 
+	if (pError != 0){
+		clean_up();
+		return pError;
+	}
 
 	// Write to the childs input buffer, it'll pick it up
 	if (line.redirectIn){
-		write_to_pipe(inputFile);
+		rError = write_to_pipe(inputFile);
+		// Don't continue if it couldn't redirect properly
+		if (rError != 0 && rError != 109){
+			fprintf(stderr, "CREATE_PROCESS: Input redirection error %i. Halting.\n", rError);
+			pError = 50;
+		}
 	}
 
+	// Read from the childs output buffer
 	if (line.redirectOut){
-		read_from_pipe(redirectOut_wchar);
+		rError = read_from_pipe(redirectOut_wchar);
+		// Don't continue if it couldn't redirect properly
+		if (rError != 0 && rError != 109){
+			fprintf(stderr, "CREATE_PROCESS: Output redirection error %i. Halting.\n", rError);
+			pError = 50;
+		}
 	}
 
-	return error;
+	clean_up();
+	return pError;
+}
+
+static int clean_up(void){
+
+	if (!CloseHandle(child_in_write)) {
+		if (debug_global > 1) printf("CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) printf("CLEAN_UP: Child input write pipe handle closed.\n"); 
+	}
+
+	if (!CloseHandle(child_out_write)) {
+		if (debug_global > 1) printf("CLEAN_UPE: Error %u when closing child output write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) printf("CLEAN_UP: Child output write pipe handle closed.\n");
+	}
+
+
+	if (!CloseHandle(child_in_read)) {
+		if (debug_global > 1) printf("CLEAN_UP: Error %u when closing child input read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) printf("CLEAN_UP: Child input read pipe handle closed.\n");
+	}
+
+	if (!CloseHandle(child_out_read)) {
+		if (debug_global > 1) printf("CLEAN_UP: Error %u when closing child output read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) printf("CLEAN_UP: Child output read pipe handle closed.\n");
+	}
 }
 
 /* -------WINDOWS------

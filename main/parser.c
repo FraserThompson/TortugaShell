@@ -145,6 +145,10 @@ void parse_command(command_line line) {
 			}
 			// Errors
 			else {
+				if (error == 50){
+					fprintf(stderr, "PARSE_COMMAND: Redirect location is not accessible or does not exist.\n");
+					return;
+				}
 				if (debug_global) printf("PARSE_COMMAND: Unable to create process error %i\n", error); 
 				if (debug_global) printf("PARSE_COMMAND: Trying again with extension on the end\n");
 				command_ext = get_command_ext(command_dir); 
@@ -189,6 +193,12 @@ void parse_command(command_line line) {
 		// No errors
 		if (error == 0) {
 			return;
+		}
+		else {
+			if (error == 50){
+				fprintf(stderr, "PARSE_COMMAND: Redirect location is not accessible or does not exist.\n");
+				return;
+			}
 		}
 	}
 
