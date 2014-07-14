@@ -17,8 +17,10 @@ typedef struct command_line {
 extern void parse_command(command_line);
 extern void parse(char *);
 extern void display_info(command_line);
-extern char **split(char *, char *, int *);
-extern char *concat_string(char *, char *, char*);
+extern char *get_system_dir(void);
+extern char *get_commands_dir(void);
+extern char *get_command_ext(char *);
+extern int get_command_type(char *);
 extern int debug_global;
 extern char *PATH;
 

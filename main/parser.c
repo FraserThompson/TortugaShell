@@ -11,105 +11,21 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <Windows.h>
 #include <string.h>
 #include "cwd.h"
 #include "cd.h"
 #include "help.h"
 #include "parser.h"
+#include "myStrings.h"
 #include "process_mgmt.h"
-
-
-/* -----CROSS PLATFORM----
-* Concatenates up to three strings.
-* Parameter: First string, second string, third string (or null).
-* Return: Resulting concatenation.
-*/
-char *concat_string(char *first, char *second, char *third){
-	size_t first_len = strlen(first) + 1;
-	size_t second_len = strlen(second) + 1;
-	size_t third_len = 0;
-
-	if (debug_global > 1){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
-	if (third){
-		if (debug_global > 1){ printf("CONCAT_STRING: Input: %s\n", third); }
-		third_len = strlen(third) + 1;
-	}
-
-	char *result = (char*)malloc(first_len + second_len + third_len);
-
-	if (result == NULL){
-		fprintf(stderr, "CONCAT_STRING: Failed to allocate memory.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if (debug_global > 1){ printf("CONCAT_STRING: Adding first: %s\n", first); }
-	strncpy(result, first, first_len);
-	if (debug_global > 1){ printf("CONCAT_STRING: Adding second: %s\n", second); }
-	strncat(result, second, second_len);
-
-	if (third){
-		if (debug_global > 1) { printf("CONCAT_STRING: Adding third: %s\n", third);  }
-		strncat(result, third, third_len);
-	}
-
-	if (debug_global > 1) { printf("CONCAT_STRING: Returning: %s\n", result); }
-	return result;
-}
+#define BUFSIZE 4096
 
 /* -----CROSS PLATFORM----
-* Splits a string of space seperated words into an array of words
-* Parameter: String to split, delimiter, memory address of integer to store index of last item.
-* Return: Array of words
-*/
-char **split(char *str, char *delimiter, int *last_index) {
-	char *token;
-	char **commands = 0;
-	char *newline;
-	int count = 0;
-
-	token = strtok(str, delimiter);
-
-	if (debug_global > 1){ printf("SPLIT: Input: %s\n", str); }
-
-	while (token) {
-		if (debug_global > 1){ printf("SPLIT: Working on token: %s\n", token); }
-
-		// Remove newline character
-		newline = strchr(token, '\n');
-		if (newline) {
-			*newline = 0;
-		}
-
-		commands = realloc(commands, sizeof(char*)* ++count);
-		if (commands == NULL){
-			printf("SPLIT: Error during realloc!\n");
-			exit(EXIT_FAILURE);
-		}
-		commands[count - 1] = token;
-		token = strtok(0, delimiter);
-		if (debug_global > 1){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
-	}
-
-	//Add a null entry to the end of the array
-	commands = realloc(commands, sizeof (char*)* (count + 1));
-
-	if (commands == NULL){
-		fprintf(stderr, "SPLIT: Error during realloc!\n");
-		exit(EXIT_FAILURE);
-	}
-
-	commands[count] = 0;
-	if (debug_global > 1){ printf("SPLIT: Returning %i tokens\n", count); }
-	*last_index = count;
-	return commands;
-}
-
-
-/* -----CROSS PLATFORM----
-* Parses a single command
+* Parses a single command processed by parse()
 * Parameters: Command to parse, parameters string, type of command)
 */
-void parse_command(command_line line) {
+static void parse_command(command_line line) {
 	int error = 0;
 	int i = 0;
 	char *param_orig = line.params; //untouched params
@@ -279,9 +195,61 @@ void parse(char *cmdline) {
 	parse_command(line);
 }
 
+/* -------CROSS-PLATFORM------
+* Prints the info contained in the command_line struct
+* Param: command_line struct
+*/
 void display_info(command_line line){
 	int i = 0;
 	if (debug_global) printf("DISPLAY_INFO: Displaying info contained in line struct\n"); 
 	printf("%-10s\t%-5s\t%-10s\t%-10s\t%-10s\t%-5s\n", "Command", "Argv", "redirectOut", "redirectIn", "pipe", "type");
 	printf("%-10s\t%-5s\t%-10s\t%-10s\t%-10s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
+}
+
+/* -------WINDOWS------
+* Returns the path to the system dir.
+* Return: path to the system dir
+*/
+char *get_system_dir(void){
+	size_t size = 100;
+	wchar_t buffer[BUFSIZE];
+	if (debug_global > 1){ printf("GET_SYSTEM_DIR: Getting system dir...\n"); }
+	if (!GetSystemDirectory(buffer, size)){
+		printf("GET_SYSTEM_DIR: Error getting system dir!\n");
+		exit(EXIT_FAILURE);
+	}
+	return concat_string(convert_to_char(buffer), "\\", NULL);
+}
+
+/* -------WINDOWS------
+* Returns the PATH the application was run from with \\commands\\ on the end.
+* Return: path
+*/
+char *get_commands_dir(void){
+	return concat_string(PATH, "\\commands\\", NULL);
+}
+
+/* -------WINDOWS------
+* Returns the command with the extension added (.exe in Windows).
+* Parameter: Command to attach it to.
+* Return: Command with extension added
+*/
+char *get_command_ext(char *command){
+	return concat_string(command, ".exe", NULL);
+}
+
+/* -----WINDOWS----
+* Check to see what the command type is: Whether it's just a single command or a physical path.
+* This is Windows so it does this by checking if the second character is a semicolon. Will have to be different for Linux.
+* Parameter: Command to check.
+* Return: An integer indicating whether it's a command (0) or a path (1)
+*/
+int get_command_type(char *command){
+	if (debug_global){ printf("GET_COMMAND_TYPE: Input: %s\n", command); }
+	if (command[1] == ':'){
+		if (debug_global){ printf("GET_COMMAND_TYPE: It's a path.\n"); }
+		return 1;
+	}
+	if (debug_global){ printf("GET_COMMAND_TYPE: It's a command.\n"); }
+	return 0;
 }

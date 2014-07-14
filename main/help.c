@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "help.h"
+#include "myStrings.h"
 #include "process_mgmt.h"
 #include "parser.h"
 

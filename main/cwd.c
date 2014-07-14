@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <Windows.h>
 #include <wchar.h>
-#include "process_mgmt.h"
+#include "myStrings.h"
 #include "cwd.h"
 
 /* -------WINDOWS------
