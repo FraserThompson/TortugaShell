@@ -127,19 +127,15 @@ void parse_command(command_line line) {
 	if (line.type == 0) {
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
-			command_dir = concat_string(dirs[i], command_orig, NULL); // Original command with the directory on the front
-            argv = command_dir; // First argument is always the path to the file
-			command_ext = get_command_ext(command_dir); // Command with dir on front and extension on the end
+			command_dir = concat_string(dirs[i], command_orig, NULL); 
+			line.params = command_dir; // First argument is always the path to the file
+			line.command = command_dir;
 			i++;
-                        
 			// If there's a parameter add it on to the argv string
 			if (param_orig){
 				if (debug_global) printf("PARSE_COMMAND: There are parameters. Adding them to the argv.\n"); 
-				argv = concat_string(argv, " ", line.params);
+				line.params = concat_string(line.params, " ", param_orig);
 			}
-
-			line.params = argv;
-			line.command = command_dir;
 
 			error = create_process(line);
 
@@ -150,9 +146,18 @@ void parse_command(command_line line) {
 			// Errors
 			else {
 				if (debug_global) printf("PARSE_COMMAND: Unable to create process error %i\n", error); 
-				if (debug_global) printf("PARSE_COMMAND: Trying again with extension on the end\n"); 
+				if (debug_global) printf("PARSE_COMMAND: Trying again with extension on the end\n");
+				command_ext = get_command_ext(command_dir); 
+				line.params = command_ext;
 				line.command = command_ext;
+
+				// If there's a parameter add it on to the argv string
+				if (param_orig){
+					if (debug_global) printf("PARSE_COMMAND: There are parameters. Adding them to the argv.\n");
+					line.params = concat_string(line.params, " ", param_orig);
+				}
 				error = create_process(line);
+
 				// No errors
 				if (error == 0) {
 					return;
