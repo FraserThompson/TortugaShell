@@ -15,13 +15,13 @@
 #include "help.h"
 #include "myStrings.h"
 #include "process_mgmt.h"
-#include "parser.h"
+#include "shell.h"
 
 /* -----WINDOWS----
 * Searches the ./commands directory and prints each filename, and then calls the file with -h to get the help.
 */
 void print_help(void){
-	char *path_commands = concat_string(PATH, "\\commands\\", NULL);
+	wchar_t *path_commands = concat_string(PATH, L"\\commands\\", NULL);
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
 	wchar_t *sDir = convert_to_wchar(path_commands);

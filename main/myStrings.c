@@ -14,89 +14,89 @@
 #include <Windows.h>
 #include <wchar.h>
 #include "myStrings.h"
-#include "parser.h" //for debug_global
+#include "shell.h" //for debug_global
 
-/* -----CROSS PLATFORM----
+/* -----WINDOWS----
 * Concatenates up to three strings.
 * Parameter: First string, second string, third string (or null).
 * Return: Resulting concatenation.
 */
-char *concat_string(char *first, char *second, char *third){
-	size_t first_len = strlen(first) + 1;
-	size_t second_len = strlen(second) + 1;
+wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
+	size_t first_len = wcslen(first) + 1;
+	size_t second_len = wcslen(second) + 1;
 	size_t third_len = 0;
 
-	if (debug_global > 1){ printf("CONCAT_STRING: Input: %s %s\n", first, second); }
+	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Input: %s %s\n", first, second); }
 	if (third){
-		if (debug_global > 1){ printf("CONCAT_STRING: Input: %s\n", third); }
-		third_len = strlen(third) + 1;
+		if (debug_global > 1){ wprintf(L"CONCAT_STRING: Input: %s\n", third); }
+		third_len = wcslen(third) + 1;
 	}
 
-	char *result = (char*)malloc(first_len + second_len + third_len);
+	wchar_t *result = malloc(sizeof(wchar_t) * (first_len + second_len + third_len));
 
 	if (result == NULL){
-		fprintf(stderr, "CONCAT_STRING: Failed to allocate memory.\n");
+		fwprintf(stderr, L"CONCAT_STRING: Failed to allocate memory.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	if (debug_global > 1){ printf("CONCAT_STRING: Adding first: %s\n", first); }
-	strncpy(result, first, first_len);
-	if (debug_global > 1){ printf("CONCAT_STRING: Adding second: %s\n", second); }
-	strncat(result, second, second_len);
+	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding first: %s\n", first); }
+	wcsncpy(result, first, first_len);
+	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding second: %s\n", second); }
+	wcsncat(result, second, second_len);
 
 	if (third){
-		if (debug_global > 1) { printf("CONCAT_STRING: Adding third: %s\n", third); }
-		strncat(result, third, third_len);
+		if (debug_global > 1) { wprintf(L"CONCAT_STRING: Adding third: %s\n", third); }
+		wcsncat(result, third, third_len);
 	}
 
-	if (debug_global > 1) { printf("CONCAT_STRING: Returning: %s\n", result); }
+	if (debug_global > 1) { wprintf(L"CONCAT_STRING: Returning: %s\n", result); }
 	return result;
 }
 
-/* -----CROSS PLATFORM----
+/* -----WINDOWS----
 * Splits a string of space seperated words into an array of words
 * Parameter: String to split, delimiter, memory address of integer to store index of last item.
 * Return: Array of words
 */
-char **split(char *str, char *delimiter, int *last_index) {
-	char *token;
-	char **commands = 0;
-	char *newline;
+wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
+	wchar_t *token;
+	wchar_t **commands = 0;
+	wchar_t *newline;
 	int count = 0;
 
-	token = strtok(str, delimiter);
+	token = wcstok(str, delimiter);
 
-	if (debug_global > 1){ printf("SPLIT: Input: %s\n", str); }
+	if (debug_global > 1){ wprintf(L"SPLIT: Input: %s\n", str); }
 
 	while (token) {
-		if (debug_global > 1){ printf("SPLIT: Working on token: %s\n", token); }
+		if (debug_global > 1){ wprintf(L"SPLIT: Working on token: %s\n", token); }
 
 		// Remove newline character
-		newline = strchr(token, '\n');
+		newline = wcschr(token, L'\n');
 		if (newline) {
 			*newline = 0;
 		}
 
-		commands = realloc(commands, sizeof(char*)* ++count);
+		commands = realloc(commands, sizeof(wchar_t*)* ++count);
 		if (commands == NULL){
-			printf("SPLIT: Error during realloc!\n");
+			wprintf(L"SPLIT: Error during realloc!\n");
 			exit(EXIT_FAILURE);
 		}
 		commands[count - 1] = token;
-		token = strtok(0, delimiter);
-		if (debug_global > 1){ printf("SPLIT: Done with token: %s\n", commands[count - 1]); }
+		token = wcstok(0, delimiter);
+		if (debug_global > 1){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
 	//Add a null entry to the end of the array
-	commands = realloc(commands, sizeof (char*)* (count + 1));
+	commands = realloc(commands, sizeof (wchar_t*)* (count + 1));
 
 	if (commands == NULL){
-		fprintf(stderr, "SPLIT: Error during realloc!\n");
+		fwprintf(stderr, L"SPLIT: Error during realloc!\n");
 		exit(EXIT_FAILURE);
 	}
 
 	commands[count] = 0;
-	if (debug_global > 1){ printf("SPLIT: Returning %i tokens\n", count); }
+	if (debug_global > 1){ wprintf(L"SPLIT: Returning %i tokens\n", count); }
 	*last_index = count;
 	return commands;
 }
@@ -107,18 +107,18 @@ char **split(char *str, char *delimiter, int *last_index) {
 * Return: Wchar version of input
 */
 wchar_t *convert_to_wchar(char *input){
-	if (debug_global > 1) { printf("CONVERT_TO_WCHAR: Input - %s\n", input); }
+	if (debug_global > 1) { wprintf(L"CONVERT_TO_WCHAR: Input - %s\n", input); }
 
 	size_t len = strlen(input) + 1;
 	wchar_t *command_w = malloc(sizeof(wchar_t)* len);
 
 	if (command_w == NULL){
-		fprintf(stderr, "Failed to allocate memory.\n");
+		fwprintf(stderr, L"Failed to allocate memory.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	swprintf(command_w, len, L"%hs", input);
-	if (debug_global > 1) printf("CONVERT_TO_WCHAR: Output - %ws\n", command_w);
+	if (debug_global > 1) wprintf(L"CONVERT_TO_WCHAR: Output - %s\n", command_w);
 	return command_w;
 }
 
@@ -128,17 +128,17 @@ wchar_t *convert_to_wchar(char *input){
 * Return: Wchar version of input
 */
 char *convert_to_char(wchar_t *input){
-	if (debug_global > 1){ printf("CONVERT_TO_CHAR: Input - %ws\n", input); }
+	if (debug_global > 1){ wprintf(L"CONVERT_TO_CHAR: Input - %ws\n", input); }
 
 	size_t len = wcslen(input) + 1;
 	char *command_c = malloc(sizeof(char)* len);
 
 	if (command_c == NULL){
-		fprintf(stderr, "Failed to allocate memory.\n");
+		fwprintf(stderr, L"Failed to allocate memory.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	wcstombs(command_c, input, len);
-	if (debug_global > 1){ printf("CONVERT_TO_CHAR: Output - %s\n", command_c); }
+	if (debug_global > 1){ wprintf(L"CONVERT_TO_CHAR: Output - %s\n", command_c); }
 	return command_c;
 }

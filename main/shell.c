@@ -10,21 +10,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parser.h"
+#include "shell.h"
 #include "cwd.h"
 
 int debug_global = 1;
-char *PATH;
+wchar_t *PATH;
 
-/* -----CROSS PLATFORM----
+/* -----WINDOWS----
 * Prints a prompt, interprets user input.
 * Return: Line that the user inputted
 */
-static char *readline(void) {
-	char *line = malloc(sizeof(char)* MAX_LINE);
-	printf("%s>", getCWD());
+static wchar_t *readline(void) {
+	wchar_t *line = malloc(sizeof(wchar_t) * MAX_LINE);
+	wprintf(L"%s>", getCWD());
 
-	if (fgets(line, MAX_LINE, stdin) == NULL) {
-		fprintf(stderr, "READLINE: Error reading line!\n");
+	if (fgetws(line, MAX_LINE, stdin) == NULL) {
+		fwprintf(stderr, L"READLINE: Error reading line!\n");
 		exit(EXIT_FAILURE);
 	}
 	else {
@@ -37,10 +38,13 @@ static char *readline(void) {
 */
 int main(int argc, char *argv[]) {
 	int i = 0;
-        PATH = getCWD();
+	wchar_t *cwd = getCWD();
+	size_t cwd_len = wcslen(getCWD()) + 1;
+	PATH = malloc(sizeof(wchar_t) * cwd_len);
+	wcscpy(PATH, cwd);
 
 	while (argv[i]){
-		if ((strcmp(argv[i], "-d") == 0) || (strcmp(argv[i], "-debug") == 0)) {
+		if ((strcmp(argv[i], L"-d") == 0) || (strcmp(argv[i], L"-debug") == 0)) {
 			debug_global = 1;
 		}
 		i++;
@@ -49,5 +53,6 @@ int main(int argc, char *argv[]) {
 	while (1){
 		parse(readline());
 	}
+
 	return EXIT_SUCCESS;
 }

@@ -8,5 +8,7 @@
 extern int create_process(command_line);
 extern int write_to_pipe(HANDLE);
 extern int read_from_pipe(char *);
+extern int open_output_pipe();
+extern int open_input_pipe();
 
 #endif

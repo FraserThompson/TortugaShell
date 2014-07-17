@@ -4,6 +4,6 @@
 #ifndef CWD
 #define CWD
 
-extern char *getCWD();
+extern wchar_t *getCWD();
 
 #endif

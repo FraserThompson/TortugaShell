@@ -10,20 +10,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <direct.h>
-#include "parser.h"
+#include "shell.h"
 #include "cd.h"
 
 /* -----CROSS-PLATFORM----
 * Changes directory.
 */
-void cd(char *dir) {
+void cd(wchar_t *dir) {
 	int i = 0;
 
 	if (_chdir(dir) != 0||dir==NULL) {
-		printf("CD: Error! Malformed path maybe?\n");
+		wprintf(L"CD: Error! Malformed path maybe?\n");
 		return;
 	}
 
-	if (debug_global){ printf("CD: Changed directory to %s.\n", dir); }
+	if (debug_global){ wprintf(L"CD: Changed directory to %s.\n", dir); }
 }
 

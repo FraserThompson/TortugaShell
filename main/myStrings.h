@@ -7,7 +7,7 @@
 
 extern wchar_t *convert_to_wchar(char *);
 extern char *convert_to_char(wchar_t *);
-extern char **split(char *, char *, int *);
-extern char *concat_string(char *, char *, char*);
+extern wchar_t **split(wchar_t *, wchar_t *, int *);
+extern wchar_t *concat_string(wchar_t *, wchar_t *, wchar_t*);
 
 #endif
