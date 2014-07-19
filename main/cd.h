@@ -5,6 +5,6 @@
 #ifndef CD
 #define CD
 
-extern void cd(char *);
+extern void cd(wchar_t *);
 
 #endif

@@ -20,31 +20,33 @@
 /* -----WINDOWS----
 * Searches the ./commands directory and prints each filename, and then calls the file with -h to get the help.
 */
-void print_help(void){
-	wchar_t *path_commands = concat_string(PATH, L"\\commands\\", NULL);
+wchar_t *print_help(void){
+	wchar_t *sDir = concat_string(PATH, L"\\commands\\", NULL);
+	wchar_t sPath[2048];
+	wchar_t *result;
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
-	wchar_t *sDir = convert_to_wchar(path_commands);
-	wchar_t sPath[2048];
+	command_line line = { NULL, NULL, NULL, NULL, 1 };
 	int error;
+	int debug_old = debug_global;
+	debug_global = 0;
 
 	wsprintf(sPath, L"%s\\*.exe", sDir);
 
-	// First display the hardcoded built in commands
-	printf("\n\t----------BUILT IN COMMANDS----------\n\n");
-	printf("cd\tChanges the current working directory.\n\tUsage: cd [directory]\n");
-	printf("cwd\tPrints the current working directory.\n\tUsage: cwd\n");
-	printf("help\tPrints this help message.\n\tUsage: help\n");
+	// First add the hardcoded built in commands
+	wchar_t *built_in = L"\n\t----------BUILT IN COMMANDS----------\n\ncd\tChanges the current working directory.\n\tUsage: cd [directory]\ncwd\tPrints the current working directory.\n\tUsage: cwd\nhelp\tPrints this help message.\n\tUsage: help\n";
 
 	// Then work on the binaries in the commands subdirectory
-	printf("\n\t----------EXTERNAL COMMANDS----------\n\n");
+	wchar_t *externcomm = L"\n\t----------EXTERNAL COMMANDS----------\n\n";
+
+	result = concat_string(built_in, externcomm, NULL);
+	wprintf(L"%s\n", result);
 
 	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
 	{
 		wprintf(L"Path not found: [%s]\n", sDir);
 		return;
 	}
-
 	do
 	{
 		{
@@ -54,7 +56,9 @@ void print_help(void){
 			{
 				continue;
 			} else {
-				error = create_process(convert_to_char(sPath), "-h", NULL, NULL);
+				line.command = sPath;
+				line.params = L"-h";
+				error = create_child(line);
 				if (error != 0) {
 					printf("PRINT_HELP: Could not open.\n");
 					return;
@@ -62,6 +66,8 @@ void print_help(void){
 			}
 		}
 	} while (FindNextFile(hFind, &fdFile)); 
-	printf("\n"); // makes it tidier
+	wprintf(L"\n"); // makes it tidier
 	FindClose(hFind); 
+	debug_global = debug_old;
+	return result;
 }

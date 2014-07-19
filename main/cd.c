@@ -19,7 +19,7 @@
 void cd(wchar_t *dir) {
 	int i = 0;
 
-	if (_chdir(dir) != 0||dir==NULL) {
+	if (_wchdir(dir) != 0||dir==NULL) {
 		wprintf(L"CD: Error! Malformed path maybe?\n");
 		return;
 	}

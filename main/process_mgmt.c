@@ -14,6 +14,7 @@
 #include <wchar.h>
 #include "process_mgmt.h"
 #include "shell.h"
+#include "myStrings.h"
 #include "parser.h"
 #define BUFSIZE 4096
 #define NUM_DIRS 3
@@ -30,10 +31,10 @@ SECURITY_ATTRIBUTES sa;
 * Parameters: Location of file to put into the pipe
 * Return: Error code - 0 if success.
 */
-int write_to_pipe(HANDLE inputFile){
+static int write_to_pipe(HANDLE inputFile){
 	DWORD dwWritten, dwRead;
 	int error;
-	char chBuf[BUFSIZE];
+	CHAR chBuf[BUFSIZE];
 
 	for (;;)
 	{
@@ -46,8 +47,8 @@ int write_to_pipe(HANDLE inputFile){
 			break;
 		}
 
-		chBuf[dwRead] = NULL; //add terminating character
-		if (debug_global) wprintf("WRITE_TO_PIPE: Writing %s to pipe.\n", chBuf);
+		chBuf[dwRead] = '\0'; //add terminating character
+		if (debug_global) printf("WRITE_TO_PIPE: Writing %s to pipe.\n", chBuf);
 
 		if (!WriteFile(child_in_write, chBuf, dwRead, &dwWritten, NULL)) {
 			error = GetLastError();
@@ -69,7 +70,7 @@ int write_to_pipe(HANDLE inputFile){
 * Parameters: Location to write to
 * Return: Error code - 0 if success
 */
-int read_from_pipe(out_file){
+static int read_from_pipe(wchar_t *out_file){
 	DWORD dwRead, dwWritten;
 	CHAR chBuf[BUFSIZE];
 	BOOL success = FALSE;
@@ -77,7 +78,7 @@ int read_from_pipe(out_file){
 	int error = 0;
 
 	// Open handle to output file
-	parent_out = CreateFile(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	parent_out = CreateFileW(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	// Close write end of pipe before reading read end
 	if (!CloseHandle(child_out_write)){
@@ -98,8 +99,8 @@ int read_from_pipe(out_file){
 			break;
 		}
 		else {
-			chBuf[dwRead] = NULL;
-			if (debug_global){ wprintf(L"READ_FROM_PIPE: Successfully read '%s' from childs standard output pipe.\n", chBuf); }
+			chBuf[dwRead] = '\0';
+			if (debug_global){ printf("READ_FROM_PIPE: Successfully read '%s' from childs standard output pipe.\n", chBuf); }
 		}
 		success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
 		if (!success) {
@@ -108,7 +109,7 @@ int read_from_pipe(out_file){
 			break;
 		}
 		else {
-			if (debug_global){ wprintf(L"READ_FROM_PIPE: Succesfully wrote '%s' to output pipe\n", chBuf); }
+			if (debug_global){ printf("READ_FROM_PIPE: Succesfully wrote '%s' to output pipe\n", chBuf); }
 		}
 	}
 
@@ -126,7 +127,7 @@ int read_from_pipe(out_file){
 * Opens a pipe between a child processes stdout and a parent process.
 * Return: Error code, 0 if success
 */
-int open_output_pipe(){
+static int open_output_pipe(){
 	if (debug_global){ wprintf(L"OPEN_OUTPUT_PIPE: Opening output pipe...\n"); }
 	if (!CreatePipe(&child_out_read, &child_out_write, &sa, 0)){
 		fwprintf(stderr, L"CREATE_PROCESS: Failed to create stdout pipe.\n");
@@ -136,33 +137,56 @@ int open_output_pipe(){
 		if (debug_global){ wprintf(L"CREATE_PROCESS: Stdout pipe created.\n"); }
 	}
 	SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
+	return 0;
 }
 
 /* -------WINDOWS------
 * Opens a pipe between a file and a child processes stdin.
 * Return: Error code, 0 if success
 */
-int open_input_pipe(wchar_t redirectIn){
+static int open_input_pipe(wchar_t *redirectIn){
 	if (debug_global){ wprintf(L"OPEN_INPUT_PIPE: Opening input pipe...\n"); }
 	if (!CreatePipe(&child_in_read, &child_in_write, &sa, 0)){
 		fwprintf(stderr, L"CREATE_PROCESS: Failed to create stdin pipe.\n");
-		return 50;
+		return 3;
 	}
 	else {
 		if (debug_global){ wprintf(L"CREATE_PROCESS: Stdin pipe created.\n"); }
 	}
+
 	SetHandleInformation(child_in_write, HANDLE_FLAG_INHERIT, 0);
 
 	inputFile = CreateFile(redirectIn, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
 	if (inputFile == INVALID_HANDLE_VALUE) {
 		fwprintf(stderr, L"CREATE_PROCESS: Failed to create handle to input file '%ws'. Does it exist?\n", redirectIn);
-		return 50;
+		return 3;
 	}
 	else {
 		if (debug_global) wprintf(L"CREATE_PROCESS: Handle to file '%ws' created.\n", redirectIn);
 	}
+
+	return 0;
 }
 
+/* -------WINDOWS------
+* Creates a properly formatted argv string
+* Parameters: line.params
+* Return: wchar_t representation of the argv
+*/
+wchar_t *get_argv(wchar_t *params, wchar_t *command){
+	wchar_t *argv;
+
+	if (params){
+		if (debug_global) wprintf(L"GET_ARGV: There are parameters. Adding them to the argv.\n");
+		argv = concat_string(command, L" ", params);
+	}
+	else {
+		argv = command;
+	}
+
+	if (debug_global) wprintf(L"GET_ARGV: Argv is %s.\n", argv);
+	return argv;
+}
 
 /* -------WINDOWS------
 * Goes through the process of opening handles, creating a process and handling the pipes.
@@ -172,15 +196,13 @@ int open_input_pipe(wchar_t redirectIn){
 int create_process(command_line line) {
 	wchar_t  *param_orig = line.params; //untouched params
 	wchar_t  *command_orig = line.command; //untouched command
-	wchar_t  *command_dir; // Command with dir on front
-	wchar_t  *argv; // String list of args
-	wchar_t  *command_ext; // Command with ext on end
+	//wchar_t  *command_dir; // Command with dir on front
+	//wchar_t  *command_ext; // Command with ext on end
 	wchar_t  *path_commands = get_commands_dir(); // PATH/commands/
 	wchar_t  *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	wchar_t  *dirs[NUM_DIRS] = { path_commands, system_dir, L"./" };
 	int pError = 0;
 	int rError = 0;
-	int error = 0;
 	int i = 0;
 
 	// Security Attributes
@@ -190,64 +212,61 @@ int create_process(command_line line) {
 
 	if (debug_global){ wprintf(L"\nCREATE_PROCESS: Parent process ID %u\n", GetCurrentProcessId()); }
 	if (debug_global) { wprintf(L"CREATE_PROCESS: Parent thread ID: %u\n", GetCurrentThreadId()); }
-	if (debug_global > 1){ display_info(line); }
+	if (debug_global){ display_info(line); }
 
 	// Opening pipes
 	if (line.redirectOut){
-		open_output_pipe();
+		rError = open_output_pipe();
+		if (rError != 0){
+			return 50;
+		}
 	}
 
 	if (line.redirectIn){
-		open_input_pipe(line.redirectIn);
+		rError = open_input_pipe(line.redirectIn);
+		if (rError != 0){
+			return 50;
+		}
 	}
 
 	/* Processing a relative path */
 	if (line.type == 0) {
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
-			command_dir = concat_string(dirs[i], command_orig, NULL);
-			line.params = command_dir; // First argument is always the path to the file
-			line.command = command_dir;
-			i++;
-			// If there's a parameter add it on to the argv string
-			if (param_orig){
-				if (debug_global) wprintf(L"PARSE_COMMAND: There are parameters. Adding them to the argv.\n");
-				line.params = concat_string(line.params, " ", param_orig);
-			}
+			// Add dir to the front of the command
+			line.command = concat_string(dirs[i++], command_orig, NULL);
 
-			error = create_child(line);
+			// Create argv string and set it to params
+			line.params = get_argv(param_orig, line.command);
+
+			// Start the process
+			pError = create_child(line);
 
 			// No errors
-			if (error == 0) {
-				return;
+			if (pError == 0) {
+				break;
 			}
 			// Errors
 			else {
-				if (error == 50){
+				if (pError == 50){
 					fwprintf(stderr, L"PARSE_COMMAND: Redirect location is not accessible or does not exist.\n");
-					return;
+					break;
 				}
-				if (debug_global) wprintf(L"PARSE_COMMAND: Unable to create process error %i\n", error);
+				if (debug_global) wprintf(L"PARSE_COMMAND: Unable to create process error %i\n", pError);
 				if (debug_global) wprintf(L"PARSE_COMMAND: Trying again with extension on the end\n");
-				command_ext = get_command_ext(command_dir);
-				line.params = command_ext;
-				line.command = command_ext;
+				line.command = get_command_ext(line.command);
 
-				// If there's a parameter add it on to the argv string
-				if (param_orig){
-					if (debug_global) wprintf(L"PARSE_COMMAND: There are parameters. Adding them to the argv.\n");
-					line.params = concat_string(line.params, L" ", param_orig);
-				}
-
-				error = create_child(line);
+				// Create argv string and set it to params
+				line.params = get_argv(param_orig, line.command);
+				pError = create_child(line);
 
 				// No errors
-				if (error == 0) {
-					return;
+				if (pError == 0) {
+					break;
 				}
 				// Errors
 				else {
-					if (debug_global){ wprintf(L"PARSE_COMMAND: Unable to create process error %i\n", error); }
+					if (debug_global){ wprintf(L"PARSE_COMMAND: Unable to create process error %i\n", pError); }
 				}
 
 			}
@@ -257,34 +276,11 @@ int create_process(command_line line) {
 
 	/* Processing an absolute path */
 	if (line.type == 1){
-
-		if (param_orig){
-			argv = concat_string(line.command, L" ", line.params);
-		}
-		else {
-			argv = line.command;
-		}
-
-		line.params = argv;
-
-		error = create_child(line);
-
-		// No errors
-		if (error == 0) {
-			return;
-		}
-		else {
-			if (error == 50){
-				fwprintf(stderr, L"PARSE_COMMAND: Redirect location is not accessible or does not exist.\n");
-				return;
-			}
-		}
+		// Create argv string and set it to params
+		line.params = get_argv(param_orig, line.command);
+		pError = create_child(line);
 	}
 
-	wprintf(L"'%s' does not exist.\n", line.command);
-
-	// Spawn process
-	//pError = create_child(command_wchar, param_wchar, line.redirectOut, line.redirectIn);
 
 	// Don't go try redirecting things if the process wasn't created succesfully, just get out of there
 	if (pError != 0){
@@ -295,7 +291,7 @@ int create_process(command_line line) {
 	// Write to the childs input buffer, it'll pick it up
 	if (line.redirectIn){
 		rError = write_to_pipe(inputFile);
-		// Don't continue if it couldn't redirect properly
+
 		if (rError != 0 && rError != 109){
 			fwprintf(stderr, L"CREATE_PROCESS: Input redirection error %i. Halting.\n", rError);
 			pError = 50;
@@ -305,7 +301,7 @@ int create_process(command_line line) {
 	// Read from the childs output buffer
 	if (line.redirectOut){
 		rError = read_from_pipe(line.redirectOut);
-		// Don't continue if it couldn't redirect properly
+
 		if (rError != 0 && rError != 109){
 			fwprintf(stderr, L"CREATE_PROCESS: Output redirection error %i. Halting.\n", rError);
 			pError = 50;
@@ -313,39 +309,8 @@ int create_process(command_line line) {
 	}
 
 	//clean_up();
+
 	return pError;
-}
-
-static int clean_up(void){
-
-	if (!CloseHandle(child_in_write)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
-	}
-	else {
-		if (debug_global) wprintf(L"CLEAN_UP: Child input write pipe handle closed.\n"); 
-	}
-
-	if (!CloseHandle(child_out_write)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UPE: Error %u when closing child output write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
-	}
-	else {
-		if (debug_global) wprintf(L"CLEAN_UP: Child output write pipe handle closed.\n");
-	}
-
-
-	if (!CloseHandle(child_in_read)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
-	}
-	else {
-		if (debug_global) wprintf(L"CLEAN_UP: Child input read pipe handle closed.\n");
-	}
-
-	if (!CloseHandle(child_out_read)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child output read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
-	}
-	else {
-		if (debug_global) wprintf(L"CLEAN_UP: Child output read pipe handle closed.\n");
-	}
 }
 
 /* -------WINDOWS------
@@ -378,7 +343,7 @@ int create_child(command_line line){
 
 	// Spawn process
 	success = CreateProcess(line.command, line.params, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
-	if (debug_global){ wprintf(L"CREATE_CHILD: Created process in Windows %s with parameter %s\n", line.command, line.params); }
+	if (debug_global){ wprintf(L"CREATE_CHILD: Creating process in Windows %s with parameter %s\n", line.command, line.params); }
 	if (!success){
 		error = GetLastError();
 	}
@@ -392,3 +357,36 @@ int create_child(command_line line){
 
 	return error;
 }
+
+static void clean_up(void){
+
+	if (!CloseHandle(child_in_write)) {
+		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) wprintf(L"CLEAN_UP: Child input write pipe handle closed.\n"); 
+	}
+
+	if (!CloseHandle(child_out_write)) {
+		if (debug_global > 1) wprintf(L"CLEAN_UPE: Error %u when closing child output write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) wprintf(L"CLEAN_UP: Child output write pipe handle closed.\n");
+	}
+
+
+	if (!CloseHandle(child_in_read)) {
+		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) wprintf(L"CLEAN_UP: Child input read pipe handle closed.\n");
+	}
+
+	if (!CloseHandle(child_out_read)) {
+		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child output read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) wprintf(L"CLEAN_UP: Child output read pipe handle closed.\n");
+	}
+}
+

@@ -13,15 +13,41 @@
 #include "shell.h"
 #include "cwd.h"
 
-int debug_global = 1;
+int debug_global = 0;
 wchar_t *PATH;
+
+/* -----CROSS-PLATFORM----
+* Malloc with error checking.
+* Return: Allocated memory 
+*/
+void *emalloc(size_t size){
+	void *p = malloc(size);
+	if (p == NULL){
+		fwprintf(stderr, "EMALLOC: Fatal error! Ran out of memory!\n");
+		exit(1);
+	}
+	return p;
+}
+
+/* -----CROSS-PLATFORM----
+* Realloc with error checking.
+* Return: Allocated memory
+*/
+void *erealloc(size_t size, void *ptr){
+	void *p = realloc(size, ptr);
+	if (p == NULL){
+		fwprintf(stderr, "EMALLOC: Fatal error! Ran out of memory!\n");
+		exit(1);
+	}
+	return p;
+}
 
 /* -----WINDOWS----
 * Prints a prompt, interprets user input.
 * Return: Line that the user inputted
 */
 static wchar_t *readline(void) {
-	wchar_t *line = malloc(sizeof(wchar_t) * MAX_LINE);
+	wchar_t *line = emalloc(sizeof(wchar_t) * MAX_LINE);
 	wprintf(L"%s>", getCWD());
 
 	if (fgetws(line, MAX_LINE, stdin) == NULL) {

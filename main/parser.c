@@ -19,7 +19,6 @@
 #include "myStrings.h"
 #include "process_mgmt.h"
 #define BUFSIZE 4096
-#define NUM_DIRS 3
 
 /* -----CROSS PLATFORM----
 * Processes a commandline
@@ -29,8 +28,8 @@ void parse(wchar_t *cmdline) {
 	wchar_t **full_line;
 	int last_index = 0;
 	int i = 0;
-	command_line line = { NULL, "", NULL, NULL, NULL, NULL };
-	wprintf(L"PATH: %s\n", PATH);
+	int error;
+	command_line line = { NULL, L"", NULL, NULL, NULL, 0 };
 
 	/*Split the raw line into tokens for processing*/
 	if (debug_global){ wprintf(L"PARSE: Input: %s\n", cmdline); }
@@ -38,24 +37,23 @@ void parse(wchar_t *cmdline) {
 	if (debug_global > 1){ wprintf(L"PARSE: First item: %s\n", full_line[0]); }
 
 	/*First token will always be a command so add it to the struct and check type*/
-	line.command = malloc(wcslen(full_line[i] + 1) * sizeof(wchar_t));
+	line.command = emalloc(wcslen(full_line[i] + 1) * sizeof(wchar_t));
 	wcscpy(line.command, full_line[i]);
 	line.type = get_command_type(full_line[i]);
 
-    /* Checking for internal commands */
+	/* Checking for internal commands */
 	if (wcscmp(line.command, L"cwd") == 0){
-		if (debug_global){ wprintf(L"PARSE: Got cwd, printing cwd.\n"); }
-		wprintf(L"%s\n", getCWD());
-		if (debug_global){ wprintf(L"PARSE: Done with cwd, continuing.\n"); }
-		return;
+		if (debug_global){ wprintf(L"PARSE: Got cwd.\n"); }
+		line.params = concat_string(line.params, L" ", getCWD());
+		line.command = L"echo";
+		line.type = 0;
 	}
 	else if (wcscmp(line.command, L"help") == 0){
-		if (debug_global){ wprintf(L"PARSE: Got help, printing help.\n"); }
+		if (debug_global){ wprintf(L"PARSE: Got help.\n"); }
 		print_help();
-		if (debug_global){ wprintf(L"PARSE: Done with help, continuing.\n"); }
 		return;
 	}
- 
+
 	/* If there's more than one token */
 	if (last_index > 1){
 		/* Internal commands with params*/
@@ -70,29 +68,39 @@ void parse(wchar_t *cmdline) {
 
 		/* Process line and populate struct */
 		while (full_line[i]){
-			if (debug_global > 1) wprintf(L"PARSE: Working on item: %ws\n", full_line[i]); 
+			if (debug_global > 1) wprintf(L"PARSE: Working on item: %ws\n", full_line[i]);
 
 			if (wcscmp(full_line[i], L">") == 0){
-				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %S\n", full_line[i + 1]); 
-				line.redirectOut = malloc(wcslen(full_line[++i]) * sizeof(wchar_t));
+				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %s\n", full_line[i + 1]);
+				line.redirectOut = emalloc(wcslen(full_line[++i]) * sizeof(wchar_t));
 				wcscpy(line.redirectOut, full_line[i]);
 			}
 			else if (wcscmp(full_line[i], L"<") == 0){
-				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", full_line[i + 1]); 
-				line.redirectIn = malloc(wcslen(full_line[++i]) * sizeof(wchar_t));
+				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", full_line[i + 1]);
+				line.redirectIn = emalloc(wcslen(full_line[++i]) * sizeof(wchar_t));
 				wcscpy(line.redirectIn, full_line[i]);
 			}
 			else {
-				if (debug_global) wprintf(L"PARSE: Adding parameter %s\n", full_line[i]); 
+				if (debug_global) wprintf(L"PARSE: Adding parameter %s\n", full_line[i]);
 				line.params = concat_string(line.params, L" ", full_line[i]);
 			}
 			i++;
 		}
 	}
 	line.params = wcscmp(line.params, L"") != 0 ? line.params : NULL; //Set params to NULL if empty
-	if (debug_global) wprintf(L"PARSE: Sending %s to create_process for execution\n", line.command); 
-	if (debug_global) display_info(line); 
-	create_process(line);
+
+	if (debug_global) wprintf(L"PARSE: Sending the following to create_process for execution:\n", line.command);
+	if (debug_global) display_info(line);
+
+	error = create_process(line);
+
+	if (error == 2 || error == 3){
+		fwprintf(stderr, L"PARSE: '%s' does not exist.\n", line.command);
+	}
+
+	if (error == 50){
+		fwprintf(stderr, L"PARSE: Redirection error.\n");
+	}
 }
 
 /* -------CROSS-PLATFORM------
@@ -101,7 +109,7 @@ void parse(wchar_t *cmdline) {
 */
 void display_info(command_line line){
 	int i = 0;
-	if (debug_global) wprintf(L"DISPLAY_INFO: Displaying info contained in line struct\n"); 
+	if (debug_global > 1) wprintf(L"DISPLAY_INFO: Displaying info contained in line struct\n"); 
 	wprintf(L"%-10s\t%-5s\t%-10s\t%-10s\t%-10s\t%-5s\n", L"Command", L"Argv", L"redirectOut", L"redirectIn", L"pipe", L"type");
 	wprintf(L"%-10s\t%-5s\t%-10s\t%-10s\t%-10s\t%i\n", line.command, line.params, line.redirectOut, line.redirectIn, line.pipe, line.type);
 }

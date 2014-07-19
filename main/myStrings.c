@@ -32,12 +32,8 @@ wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
 		third_len = wcslen(third) + 1;
 	}
 
-	wchar_t *result = malloc(sizeof(wchar_t) * (first_len + second_len + third_len));
+	wchar_t *result = emalloc(sizeof(wchar_t) * (first_len + second_len + third_len));
 
-	if (result == NULL){
-		fwprintf(stderr, L"CONCAT_STRING: Failed to allocate memory.\n");
-		exit(EXIT_FAILURE);
-	}
 
 	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding first: %s\n", first); }
 	wcsncpy(result, first, first_len);
@@ -77,23 +73,14 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 			*newline = 0;
 		}
 
-		commands = realloc(commands, sizeof(wchar_t*)* ++count);
-		if (commands == NULL){
-			wprintf(L"SPLIT: Error during realloc!\n");
-			exit(EXIT_FAILURE);
-		}
+		commands = erealloc(commands, sizeof(wchar_t*)* ++count);
 		commands[count - 1] = token;
 		token = wcstok(0, delimiter);
 		if (debug_global > 1){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
 	//Add a null entry to the end of the array
-	commands = realloc(commands, sizeof (wchar_t*)* (count + 1));
-
-	if (commands == NULL){
-		fwprintf(stderr, L"SPLIT: Error during realloc!\n");
-		exit(EXIT_FAILURE);
-	}
+	commands = erealloc(commands, sizeof (wchar_t*)* (count + 1));
 
 	commands[count] = 0;
 	if (debug_global > 1){ wprintf(L"SPLIT: Returning %i tokens\n", count); }
@@ -110,12 +97,7 @@ wchar_t *convert_to_wchar(char *input){
 	if (debug_global > 1) { wprintf(L"CONVERT_TO_WCHAR: Input - %s\n", input); }
 
 	size_t len = strlen(input) + 1;
-	wchar_t *command_w = malloc(sizeof(wchar_t)* len);
-
-	if (command_w == NULL){
-		fwprintf(stderr, L"Failed to allocate memory.\n");
-		exit(EXIT_FAILURE);
-	}
+	wchar_t *command_w = emalloc(sizeof(wchar_t)* len);
 
 	swprintf(command_w, len, L"%hs", input);
 	if (debug_global > 1) wprintf(L"CONVERT_TO_WCHAR: Output - %s\n", command_w);
@@ -131,12 +113,7 @@ char *convert_to_char(wchar_t *input){
 	if (debug_global > 1){ wprintf(L"CONVERT_TO_CHAR: Input - %ws\n", input); }
 
 	size_t len = wcslen(input) + 1;
-	char *command_c = malloc(sizeof(char)* len);
-
-	if (command_c == NULL){
-		fwprintf(stderr, L"Failed to allocate memory.\n");
-		exit(EXIT_FAILURE);
-	}
+	char *command_c = emalloc(sizeof(char)* len);
 
 	wcstombs(command_c, input, len);
 	if (debug_global > 1){ wprintf(L"CONVERT_TO_CHAR: Output - %s\n", command_c); }

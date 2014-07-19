@@ -12,14 +12,15 @@
 #include <Windows.h>
 #include "myStrings.h"
 #include "cwd.h"
+#define BUFSIZE 1024
 
 /* -------WINDOWS------
 * Returns the CWD in windows
 */
 wchar_t *getCWD(){
-	wchar_t cwd[1024];
+	wchar_t cwd[BUFSIZE];
 
-	if (!GetCurrentDirectoryW(1024, cwd)) {
+	if (!GetCurrentDirectoryW(BUFSIZE, cwd)) {
 		fwprintf(stderr, L"CWD: Fatal error getting current directory! %s\n", GetLastError());
 		exit(EXIT_FAILURE);
 	}
