@@ -50,7 +50,7 @@ static int write_to_pipe(HANDLE inputFile){
 		chBuf[dwRead] = '\0'; //add terminating character
 		if (debug_global) printf("WRITE_TO_PIPE: Writing %s to pipe.\n", chBuf);
 
-		if (!WriteFile(child_in_write, chBuf, dwRead, &dwWritten, NULL)) {
+		if (!WriteFile(child_in_write, convert_to_char(chBuf), dwRead, &dwWritten, NULL)) {
 			error = GetLastError();
 			fwprintf(stderr, L"WRITE_TO_PIPE: Error %u when writing file to pipe.\n", error);
 			break;
@@ -62,6 +62,10 @@ static int write_to_pipe(HANDLE inputFile){
 		return EXIT_FAILURE;
 	}
 
+	if (!CloseHandle(inputFile)){
+		fwprintf(stderr, L"WRITE_TO_PIPE: Error closing input file handle.\n");
+		return EXIT_FAILURE;
+	}
 	return error;
 }
 
@@ -293,7 +297,6 @@ int create_process(command_line line) {
 		rError = write_to_pipe(inputFile);
 
 		if (rError != 0 && rError != 109){
-			fwprintf(stderr, L"CREATE_PROCESS: Input redirection error %i. Halting.\n", rError);
 			pError = 50;
 		}
 	}
@@ -303,13 +306,11 @@ int create_process(command_line line) {
 		rError = read_from_pipe(line.redirectOut);
 
 		if (rError != 0 && rError != 109){
-			fwprintf(stderr, L"CREATE_PROCESS: Output redirection error %i. Halting.\n", rError);
 			pError = 50;
 		}
 	}
 
-	//clean_up();
-
+	clean_up();
 	return pError;
 }
 

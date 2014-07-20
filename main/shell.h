@@ -11,11 +11,11 @@ typedef struct command_line {
 	wchar_t  *redirectIn; //location to redirect output from, NULL if no redirection
 	wchar_t  *pipe; //location to pipe output to, NULL if no redirection
 	int type; //type: 0 if relative, 1 if absolute
-} command_line;
+}command_line;
 
 extern int debug_global;
 extern wchar_t *PATH;
 extern void *emalloc(size_t);
-extern void *erealloc(size_t, void *);
+extern void *erealloc(void *, size_t);
 
 #endif
