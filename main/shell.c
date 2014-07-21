@@ -19,6 +19,7 @@ int debug_global = 1;
 wchar_t *PATH;
 HANDLE CONSOLE;
 
+
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
 * Return: Allocated memory 
@@ -107,6 +108,20 @@ void printHeader(wchar_t *content, HANDLE console){
 	advPrint(content, CONSOLE, center_x, coords.Y, attributes);
 }
 
+wchar_t readConsoleCharacter(HANDLE console){
+	wchar_t *lpBuffer = emalloc(sizeof(wchar_t));
+	HANDLE stdIn = GetStdHandle(STD_INPUT_HANDLE);
+	int count = 0;
+	BOOL success = ReadConsole(stdIn, lpBuffer, 1, count, NULL);
+	return lpBuffer;
+}
+
+void writeConsoleCharacter(wchar_t *character, HANDLE console){
+	int count = 0;
+	BOOL success2 = WriteConsole(console, *character, 1, count, NULL);
+}
+
+
 /* -----WINDOWS----
 * Prints a prompt, interprets user input.
 * Return: Line that the user inputted
@@ -114,7 +129,6 @@ void printHeader(wchar_t *content, HANDLE console){
 static wchar_t *readline(void) {
 	wchar_t *line = emalloc(sizeof(wchar_t) * MAX_LINE);
 	wchar_t *top = concat_string(L"", getCWD(), L"\n");
-
 	SetConsoleTextAttribute(CONSOLE, (FOREGROUND_INTENSITY));
 	wprintf(L"\n>");
 
@@ -125,6 +139,7 @@ static wchar_t *readline(void) {
 		fwprintf(stderr, L"READLINE: Error reading line!\n");
 		exit(EXIT_FAILURE);
 	}
+
 	return line;
 	
 }
@@ -137,11 +152,15 @@ int wmain(int argc, wchar_t *argv[]) {
 	wchar_t *cwd = getCWD();
 	wchar_t *line;
 	size_t cwd_len = wcslen(getCWD()) + 1;
+	HWND consoleWindow = GetConsoleWindow();
 	PATH = malloc(sizeof(wchar_t) * cwd_len);
 	CONSOLE = GetStdHandle(STD_OUTPUT_HANDLE);
 	wcscpy(PATH, cwd);
 
 	SetConsoleTitle(L"Tortuga");
+	SetWindowLong(consoleWindow, GWL_EXSTYLE, GetWindowLong(consoleWindow, GWL_EXSTYLE) | WS_EX_LAYERED);
+	SetLayeredWindowAttributes(consoleWindow, 0, 230, LWA_ALPHA);
+	SetConsoleMode(CONSOLE, (ENABLE_QUICK_EDIT_MODE | ENABLE_EXTENDED_FLAGS | ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT));
 
 	while (argv[i]){
 		if ((wcscmp(argv[i], L"-d") == 0) || (wcscmp(argv[i], L"-debug") == 0)) {
@@ -153,6 +172,8 @@ int wmain(int argc, wchar_t *argv[]) {
 	while (1){
 		line = readline();
 		parse(line);
+
+		//writeConsoleCharacter(readConsoleCharacter(CONSOLE), CONSOLE);
 	}
 
 	free(PATH);

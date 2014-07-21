@@ -174,7 +174,7 @@ static int open_input_pipe(wchar_t *redirectIn){
 
 /* -------WINDOWS------
 * Creates a properly formatted argv string
-* Parameters: line.params
+* Parameters: line->params
 * Return: wchar_t representation of the argv
 */
 wchar_t *get_argv(wchar_t *params, wchar_t *command){
@@ -185,7 +185,7 @@ wchar_t *get_argv(wchar_t *params, wchar_t *command){
 		argv = concat_string(command, L" ", params);
 	}
 	else {
-		argv = command;
+		argv = concat_string(command, L"", NULL); //to make freeing memory easier
 	}
 
 	if (debug_global) wprintf(L"GET_ARGV: Argv is %s.\n", argv);
@@ -197,11 +197,11 @@ wchar_t *get_argv(wchar_t *params, wchar_t *command){
 * Parameters: command_line struct
 * Return: Error code, 0 if success, 50 if encountered a redirection error
 */
-int create_process(command_line line) {
-	wchar_t  *param_orig = line.params; //untouched params
-	wchar_t  *command_orig = line.command; //untouched command
-	//wchar_t  *command_dir; // Command with dir on front
-	//wchar_t  *command_ext; // Command with ext on end
+int create_process(command_line *line) {
+	wchar_t *process_command;
+	wchar_t *process_params;
+	wchar_t *process_command_ext;
+	wchar_t *process_params_ext;
 	wchar_t  *path_commands = get_commands_dir(); // PATH/commands/
 	wchar_t  *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	wchar_t  *dirs[NUM_DIRS] = { path_commands, system_dir, L"./" };
@@ -219,32 +219,32 @@ int create_process(command_line line) {
 	if (debug_global){ display_info(line); }
 
 	// Opening pipes
-	if (line.redirectOut){
+	if (line->redirectOut){
 		rError = open_output_pipe();
 		if (rError != 0){
 			return 50;
 		}
 	}
 
-	if (line.redirectIn){
-		rError = open_input_pipe(line.redirectIn);
+	if (line->redirectIn){
+		rError = open_input_pipe(line->redirectIn);
 		if (rError != 0){
 			return 50;
 		}
 	}
 
 	/* Processing a relative path */
-	if (line.type == 0) {
+	if (line->type == 0) {
 		// Check for the desired command in all dirs until found, also check with the extension
 		while (i != NUM_DIRS){
 			// Add dir to the front of the command
-			line.command = concat_string(dirs[i++], command_orig, NULL);
+			process_command = concat_string(dirs[i++], line->command, NULL);
 
 			// Create argv string and set it to params
-			line.params = get_argv(param_orig, line.command);
+			process_params = get_argv(line->params, process_command);
 
 			// Start the process
-			pError = create_child(line);
+			pError = create_child(process_command, process_params);
 
 			// No errors? Get out of the loop
 			if (pError == 0) {
@@ -254,11 +254,11 @@ int create_process(command_line line) {
 			else {
 				if (debug_global) wprintf(L"CREATE_PROCESS: Unable to create process error %i\n", pError);
 				if (debug_global) wprintf(L"CREATE_PROCESS: Trying again with extension on the end\n");
-				line.command = get_command_ext(line.command);
+				process_command_ext = get_command_ext(process_command);
 
-				// Create argv string and set it to params
-				line.params = get_argv(param_orig, line.command);
-				pError = create_child(line);
+				// Create new argv string with new command and set it to params
+				process_params_ext = get_argv(line->params, process_command_ext);
+				pError = create_child(process_command_ext, process_params_ext);
 
 				// No errors? Get out of the loop
 				if (pError == 0) {
@@ -271,22 +271,22 @@ int create_process(command_line line) {
 	}
 
 	/* Processing an absolute path */
-	if (line.type == 1){
+	if (line->type == 1){
 		if (debug_global > 1) wprintf(L"CREATE_PROCESS: Processing an absolute path\n");
 		// Create argv string and set it to params
-		line.params = get_argv(param_orig, line.command);
-		pError = create_child(line);
+		process_params = get_argv(line->params, line->command);
+		pError = create_child(line->command, process_params);
 	}
 
 	// Don't go try redirecting things if the process wasn't created succesfully, just get out of there
 	if (pError != 0){
 		if (debug_global) wprintf(L"CREATE_PROCESS: Unable to create process error %i. Returning\n", pError);
-		clean_up(line);
+		close_handles();
 		return pError;
 	}
 
 	// Write to the childs input buffer, it'll pick it up
-	if (line.redirectIn){
+	if (line->redirectIn){
 		rError = write_to_pipe(inputFile);
 
 		if (rError != 0 && rError != 109){
@@ -295,15 +295,22 @@ int create_process(command_line line) {
 	}
 
 	// Read from the childs output buffer
-	if (line.redirectOut){
-		rError = read_from_pipe(line.redirectOut);
+	if (line->redirectOut){
+		rError = read_from_pipe(line->redirectOut);
 
 		if (rError != 0 && rError != 109){
 			pError = 50;
 		}
 	}
 
-	clean_up(line);
+	// Cleaning up
+	close_handles();
+	free(process_command);
+	free(process_params);
+	free(process_params_ext);
+	free(path_commands);
+	free(system_dir);
+
 	return pError;
 }
 
@@ -312,7 +319,7 @@ int create_process(command_line line) {
 * Parameters: command, args
 * Return: Error code, 0 if success.
 */
-int create_child(command_line line){
+int create_child(wchar_t *command, wchar_t *params){
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
 	BOOL success = FALSE;
@@ -324,20 +331,20 @@ int create_child(command_line line){
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
 
-	if (line.redirectIn){
+	if (child_in_read){
 		si.hStdInput = child_in_read;
 		si.dwFlags |= STARTF_USESTDHANDLES;
 	}
 
-	if (line.redirectOut){
+	if (child_out_write){
 		si.hStdOutput = child_out_write;
 		si.hStdError = child_out_write;
 		si.dwFlags |= STARTF_USESTDHANDLES;
 	}
 
 	// Spawn process
-	success = CreateProcess(line.command, line.params, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
-	if (debug_global){ wprintf(L"CREATE_CHILD: Creating process in Windows %s with parameter %s\n", line.command, line.params); }
+	success = CreateProcess(command, params, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+	if (debug_global){ wprintf(L"CREATE_CHILD: Creating process in Windows %s with parameter %s\n", command, params); }
 	if (!success){
 		error = GetLastError();
 	}
@@ -352,22 +359,7 @@ int create_child(command_line line){
 	return error;
 }
 
-static void clean_up(command_line line){
-	if (line.command){
-		free(line.command);
-	}
-
-	/*if (line.params){
-		free(line.params);
-	}*/
-	
-	if (line.redirectIn){
-		free(line.redirectIn);
-	}
-
-	if (line.redirectOut){
-		free(line.redirectOut);
-	}
+static void close_handles(){
 
 	if (!CloseHandle(child_in_write)) {
 		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
