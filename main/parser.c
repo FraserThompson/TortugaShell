@@ -101,6 +101,18 @@ void parse(wchar_t *cmdline) {
 	if (error == 50){
 		fwprintf(stderr, L"PARSE: Redirection error.\n");
 	}
+
+	// Free the stuff we don't need any more
+	free(cmdline);
+	free_stuff(full_line, last_index);
+}
+
+static void free_stuff(wchar_t **full_line, int last_index){
+	int i = 0;
+	while (i < last_index - 1){
+		free(full_line[i]);
+		i++;
+	}
 }
 
 /* -------CROSS-PLATFORM------

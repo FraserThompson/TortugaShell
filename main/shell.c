@@ -125,9 +125,8 @@ static wchar_t *readline(void) {
 		fwprintf(stderr, L"READLINE: Error reading line!\n");
 		exit(EXIT_FAILURE);
 	}
-	else {
-		return line;
-	}
+	return line;
+	
 }
 
 /* 
@@ -135,10 +134,11 @@ static wchar_t *readline(void) {
 */
 int wmain(int argc, wchar_t *argv[]) {
 	int i = 0;
-	CONSOLE = GetStdHandle(STD_OUTPUT_HANDLE);
 	wchar_t *cwd = getCWD();
+	wchar_t *line;
 	size_t cwd_len = wcslen(getCWD()) + 1;
 	PATH = malloc(sizeof(wchar_t) * cwd_len);
+	CONSOLE = GetStdHandle(STD_OUTPUT_HANDLE);
 	wcscpy(PATH, cwd);
 
 	SetConsoleTitle(L"Tortuga");
@@ -151,8 +151,11 @@ int wmain(int argc, wchar_t *argv[]) {
 	}
 
 	while (1){
-		parse(readline());
+		line = readline();
+		parse(line);
 	}
 
+	free(PATH);
+	free(line);
 	return EXIT_SUCCESS;
 }

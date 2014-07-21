@@ -246,31 +246,23 @@ int create_process(command_line line) {
 			// Start the process
 			pError = create_child(line);
 
-			// No errors
+			// No errors? Get out of the loop
 			if (pError == 0) {
 				break;
 			}
 			// Errors
 			else {
-				if (pError == 50){
-					fwprintf(stderr, L"PARSE_COMMAND: Redirect location is not accessible or does not exist.\n");
-					break;
-				}
-				if (debug_global) wprintf(L"PARSE_COMMAND: Unable to create process error %i\n", pError);
-				if (debug_global) wprintf(L"PARSE_COMMAND: Trying again with extension on the end\n");
+				if (debug_global) wprintf(L"CREATE_PROCESS: Unable to create process error %i\n", pError);
+				if (debug_global) wprintf(L"CREATE_PROCESS: Trying again with extension on the end\n");
 				line.command = get_command_ext(line.command);
 
 				// Create argv string and set it to params
 				line.params = get_argv(param_orig, line.command);
 				pError = create_child(line);
 
-				// No errors
+				// No errors? Get out of the loop
 				if (pError == 0) {
 					break;
-				}
-				// Errors
-				else {
-					if (debug_global){ wprintf(L"PARSE_COMMAND: Unable to create process error %i\n", pError); }
 				}
 
 			}
@@ -280,15 +272,16 @@ int create_process(command_line line) {
 
 	/* Processing an absolute path */
 	if (line.type == 1){
+		if (debug_global > 1) wprintf(L"CREATE_PROCESS: Processing an absolute path\n");
 		// Create argv string and set it to params
 		line.params = get_argv(param_orig, line.command);
 		pError = create_child(line);
 	}
 
-
 	// Don't go try redirecting things if the process wasn't created succesfully, just get out of there
 	if (pError != 0){
-		clean_up();
+		if (debug_global) wprintf(L"CREATE_PROCESS: Unable to create process error %i. Returning\n", pError);
+		clean_up(line);
 		return pError;
 	}
 
@@ -310,7 +303,7 @@ int create_process(command_line line) {
 		}
 	}
 
-	clean_up();
+	clean_up(line);
 	return pError;
 }
 
@@ -359,7 +352,22 @@ int create_child(command_line line){
 	return error;
 }
 
-static void clean_up(void){
+static void clean_up(command_line line){
+	if (line.command){
+		free(line.command);
+	}
+
+	/*if (line.params){
+		free(line.params);
+	}*/
+	
+	if (line.redirectIn){
+		free(line.redirectIn);
+	}
+
+	if (line.redirectOut){
+		free(line.redirectOut);
+	}
 
 	if (!CloseHandle(child_in_write)) {
 		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
@@ -390,4 +398,3 @@ static void clean_up(void){
 		if (debug_global) wprintf(L"CLEAN_UP: Child output read pipe handle closed.\n");
 	}
 }
-
