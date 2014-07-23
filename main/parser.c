@@ -24,9 +24,8 @@
 * Processes a commandline
 * Parameter: Line to process
 */
-void parse(wchar_t *cmdline) {
-	wchar_t **full_line;
-	int last_index = 0;
+void parse(wchar_t **cmdline, int num_words) {
+	int last_index = num_words;
 	int i = 0;
 	int error;
 
@@ -40,15 +39,12 @@ void parse(wchar_t *cmdline) {
 	line->redirectIn = NULL;
 	line->redirectOut = NULL;
 
-	// Split the raw line into tokens for processing
-	if (debug_global){ wprintf(L"PARSE: Input: %s\n", cmdline); }
-	full_line = split(cmdline, L" ", &last_index);
-	if (debug_global > 1){ wprintf(L"PARSE: First item: %s\n", full_line[0]); }
+	if (debug_global > 1){ wprintf(L"PARSE: First item: %s\n", cmdline[0]); }
 
 	// First token will always be a command so add it to the struct and check type
-	line->command = emalloc(wcslen(full_line[i] + 1) * sizeof(wchar_t));
-	wcscpy(line->command, full_line[i]);
-	line->type = get_command_type(full_line[i]);
+	line->command = emalloc(wcslen(cmdline[i] + 1) * sizeof(wchar_t));
+	wcscpy(line->command, cmdline[i]);
+	line->type = get_command_type(cmdline[i]);
 
 	// Checking for internal commands 
 	if (wcscmp(line->command, L"cwd") == 0){
@@ -68,7 +64,7 @@ void parse(wchar_t *cmdline) {
 		/* Internal commands with params*/
 		if (wcscmp(line->command, L"cd") == 0){
 			if (debug_global){ wprintf(L"PARSE: Got cd, changing directory.\n"); }
-			cd(full_line[1]);
+			cd(cmdline[1]);
 			if (debug_global){ wprintf(L"PARSE: Done with cd, returning.\n"); }
 			return;
 		}
@@ -76,22 +72,22 @@ void parse(wchar_t *cmdline) {
 		i++; // increment i to skip the first token since we've already delt with it
 
 		/* Process line and populate struct */
-		while (full_line[i]){
-			if (debug_global > 1) wprintf(L"PARSE: Working on item: %ws\n", full_line[i]);
+		while (cmdline[i]){
+			if (debug_global) wprintf(L"PARSE: Working on item: %ws\n", cmdline[i]);
 
-			if (wcscmp(full_line[i], L">") == 0){
-				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %s\n", full_line[i + 1]);
-				line->redirectOut = emalloc(wcslen(full_line[++i]) * sizeof(wchar_t));
-				wcscpy(line->redirectOut, full_line[i]);
+			if (wcscmp(cmdline[i], L">") == 0){
+				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %s\n", cmdline[i + 1]);
+				line->redirectOut = emalloc(wcslen(cmdline[++i]) * sizeof(wchar_t));
+				wcscpy(line->redirectOut, cmdline[i]);
 			}
-			else if (wcscmp(full_line[i], L"<") == 0){
-				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", full_line[i + 1]);
-				line->redirectIn = emalloc(wcslen(full_line[++i]) * sizeof(wchar_t));
-				wcscpy(line->redirectIn, full_line[i]);
+			else if (wcscmp(cmdline[i], L"<") == 0){
+				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", cmdline[i + 1]);
+				line->redirectIn = emalloc(wcslen(cmdline[++i]) * sizeof(wchar_t));
+				wcscpy(line->redirectIn, cmdline[i]);
 			}
 			else {
-				if (debug_global) wprintf(L"PARSE: Adding parameter %s\n", full_line[i]);
-				line->params = concat_string(line->params, L" ", full_line[i]);
+				if (debug_global) wprintf(L"PARSE: Adding parameter %s\n", cmdline[i]);
+				line->params = concat_string(line->params, L" ", cmdline[i]);
 			}
 			i++;
 		}
@@ -113,15 +109,15 @@ void parse(wchar_t *cmdline) {
 
 	// Free the stuff we don't need any more
 	free(cmdline);
-	//free_stuff(full_line, last_index);
+	//free_stuff(cmdline, last_index);
 
 }
 
-static void free_stuff(wchar_t **full_line, int last_index){
+static void free_stuff(wchar_t **cmdline, int last_index){
 	int i = 0;
 	while (i < last_index - 1){
-		wprintf(L"Freeing: %s", full_line[i]);
-		free(full_line[i]);
+		wprintf(L"Freeing: %s", cmdline[i]);
+		free(cmdline[i]);
 		i++;
 	}
 }

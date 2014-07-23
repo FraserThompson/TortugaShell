@@ -17,5 +17,6 @@ extern int debug_global;
 extern wchar_t *PATH;
 extern void *emalloc(size_t);
 extern void *erealloc(void *, size_t);
+extern wchar_t **readline(int);
 
 #endif

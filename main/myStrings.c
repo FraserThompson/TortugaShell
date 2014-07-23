@@ -34,7 +34,6 @@ wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
 
 	wchar_t *result = emalloc(sizeof(wchar_t) * (first_len + second_len + third_len));
 
-
 	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding first: %s\n", first); }
 	wcsncpy(result, first, first_len);
 	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding second: %s\n", second); }
