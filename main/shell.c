@@ -22,7 +22,6 @@ HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
 int CONSOLE_TRANSPARENCY;
 
-
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
 * Return: Allocated memory 
@@ -111,7 +110,10 @@ void printHeader(wchar_t *content, HANDLE CONSOLE_OUTPUT){
 	advPrint(content, CONSOLE_OUTPUT, center_x, coords.Y, attributes);
 }
 
-static int drawPrompt(void) {
+/* -----WINDOWS----
+* Draws a prompt at the top containing the cwd
+*/
+static void drawPrompt(void) {
 	wchar_t *top = concat_string(L"", getCWD(), L"\n");
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, (FOREGROUND_INTENSITY));
 	wprintf(L"\n>");
@@ -119,13 +121,21 @@ static int drawPrompt(void) {
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, (FOREGROUND_INTENSITY));
 }
 
-
+/* -----WINDOWS----
+* Gets the current console cursor position
+* Return: Cursor position
+*/
 static COORD getCursor(){
 	CONSOLE_SCREEN_BUFFER_INFO cursor_position;
 	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &cursor_position);
 	return cursor_position.dwCursorPosition;
 }
 
+/* -----WINDOWS----
+* Moves the console cursor to a specified position relative to current
+* Params: num of rows/columns to move
+* Return: The new position
+*/
 static COORD moveCursor(int x, int y) {
 	COORD coords;
 	CONSOLE_SCREEN_BUFFER_INFO cursor_position;
@@ -142,64 +152,98 @@ static COORD moveCursor(int x, int y) {
 * Return: Line that the user inputted
 */
 static wchar_t **readline(int *num_words) {
-	wchar_t **line = emalloc(sizeof(wchar_t *) * 64);
-	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD);
-	wchar_t wcs_buffer = emalloc(sizeof(wchar_t));
+	wchar_t **line_array;
+	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds a word
+	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
+	wchar_t wcs_buffer = malloc(sizeof(wchar_t)); //buffers each character typed
+	wchar_t backspace_buffer = malloc(sizeof(wchar_t)); //buffers the character removed by the backspace
 	DWORD num_read;
-	DWORD backspace_buff;
+	DWORD backspace_read;
 	WORD colours = FOREGROUND_GREEN;
-	int k = 0;
-	int word_len = 0;
-	int count = 0;
 	COORD cursor_loc = getCursor();
+	int listening = 1;
+	int count;
+	int k = 0; //number of charactres in line array
+	int word_count = 0; //number of words
+	int wordchar_count = 0; //number of characters in current word
 
-	while (1){
+	DWORD cNumRead, fdwMode, i;
+	INPUT_RECORD irInBuf[128];
+	int counter = 0;
+	wchar_t intstr[3];
+
+	FlushConsoleInputBuffer(CONSOLE_INPUT);
+
+	while (listening){
 		wcs_buffer = getwchar();
+		switch (wcs_buffer){
 
-		// Enter
-		if (wcs_buffer == L'\r'){
-
+		case L'':
 			break;
-		}
 
-		// Backspace
-		if (wcs_buffer == L'\b'){
+		case 13:
+			listening = 0;
+			break;
+
+		case L'\b':
 			cursor_loc = getCursor();
 
-			// Don't let them remove the arrow
+			// Only backspace if we're within the bounds
 			if (cursor_loc.X > 1){
 				cursor_loc.X -= 1;
-				WriteConsoleOutputCharacter(CONSOLE_OUTPUT, L" ", 1, cursor_loc, &backspace_buff);
-				// If we encounter a space, remove words from line and decrease count
+				backspace_buffer = line_buffer[k];
+				line_buffer[k--] = 0;
+				if (backspace_buffer == L' '){
+					word_count--;
+					if (debug_global) {
+						swprintf(intstr, 3, L"%d", word_count);
+						advPrint(intstr, CONSOLE_OUTPUT, 0, 0, NULL);
+					}
+				}
+				WriteConsoleOutputCharacter(CONSOLE_OUTPUT, L" ", 1, cursor_loc, &backspace_read);
 			}
 			else {
 				cursor_loc = moveCursor(1, 0);
 			}
-		}
 
-		putwchar(wcs_buffer);
+			putwchar(wcs_buffer);
+			break;
 
-		// Space
-		if (wcs_buffer == L' '){
-			word_buffer[k] = '\0';
-			line[count] = malloc(sizeof(wchar_t) * k);
-			wcscpy(line[count++], word_buffer);
-			line[count] = 0;
+		case L' ':
+			// Finish the word off
+			word_buffer[wordchar_count] = L'\0';
 
-			if (count == 1){
+			// If we're on the first word check to see if it's cwd
+			if (word_count == 0){
 				if (wcscmp(word_buffer, L"cwd") == 0){
+					if (debug_global > 1) advPrint(L"GOT CWD", CONSOLE_OUTPUT, k, 0, NULL);
 					cursor_loc = getCursor();
-					cursor_loc.X -= k + 1;
-					FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, k, cursor_loc, &num_read);
-					cursor_loc.X += k + 1;
+					cursor_loc.X -= wordchar_count;
+					FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count, cursor_loc, &num_read);
+					cursor_loc.X += wordchar_count;
 				}
 			}
 
-			memset(word_buffer, 0, sizeof(word_buffer));
-			k = -1;
-		}
+			word_count++;
 
-		word_buffer[k++] = wcs_buffer;
+			if (debug_global) {
+				swprintf(intstr, 3, L"%d", word_count);
+				advPrint(intstr, CONSOLE_OUTPUT, 0, 0, NULL);
+			}
+
+			// Empty the word
+			wordchar_count = 0;
+			memset(word_buffer, 0, wordchar_count);
+			line_buffer[k++] = wcs_buffer;
+			putwchar(wcs_buffer);
+			break;
+
+		default:
+			line_buffer[k++] = wcs_buffer;
+			word_buffer[wordchar_count++] = wcs_buffer;
+			putwchar(wcs_buffer);
+			break;
+		}
 	}
 
 	/*if (fgetws(line, MAX_LINE, stdin) == NULL) {
@@ -207,17 +251,18 @@ static wchar_t **readline(int *num_words) {
 		exit(EXIT_FAILURE);
 	}*/
 
-	// Add any leftover words
-	word_buffer[k] = '\0';
-	line[count] = malloc(sizeof(wchar_t)* k);
-	wcscpy(line[count++], word_buffer);
-	line[count] = 0;
+
+	// Add null termination
+	line_buffer[k] = L'\0';
 
 	// Move cursor down a line
 	cursor_loc = moveCursor(0, 1);
 
+	// Split into array
+	line_array = split(line_buffer, L" ", &count);
 	*num_words = count;
-	return line;
+
+	return line_array;
 	
 }
 
@@ -232,7 +277,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	wchar_t **line;
 	HWND ConsoleWindow;
 
-	// Get the current working directory so we have a reference
+	// Get the current working directory
 	size_t cwd_len = wcslen(getCWD()) + 1;
 	PATH = malloc(sizeof(wchar_t)* cwd_len);
 	wcscpy(PATH, cwd);
@@ -242,16 +287,13 @@ int wmain(int argc, wchar_t *argv[]) {
 	CONSOLE_INPUT = GetStdHandle(STD_INPUT_HANDLE);
 	ConsoleWindow = GetConsoleWindow();
 	SetConsoleTitle(L"Tortuga");
-	SetConsoleMode(CONSOLE_INPUT, (ENABLE_MOUSE_INPUT));
-	SetConsoleMode(CONSOLE_OUTPUT, (ENABLE_WRAP_AT_EOL_OUTPUT | ENABLE_PROCESSED_OUTPUT));
+	SetConsoleMode(CONSOLE_INPUT, (ENABLE_MOUSE_INPUT | ENABLE_PROCESSED_INPUT));
 
 	// Adding transperancy
 	CONSOLE_TRANSPARENCY = 240;
 	SetWindowLong(ConsoleWindow, GWL_EXSTYLE, GetWindowLong(ConsoleWindow, GWL_EXSTYLE) | WS_EX_LAYERED);
 	SetLayeredWindowAttributes(ConsoleWindow, 0, CONSOLE_TRANSPARENCY, LWA_ALPHA);
 
-
-	//PeekConsoleInput(CONSOLE_INPUT, &buffer, 1, &events);
 	// Check for debug flag
 	while (argv[i]){
 		if ((wcscmp(argv[i], L"-d") == 0) || (wcscmp(argv[i], L"-debug") == 0)) {
@@ -260,10 +302,10 @@ int wmain(int argc, wchar_t *argv[]) {
 		i++;
 	}
 	
+	// Main loop
 	while (1) {
 		drawPrompt();
 		line = readline(&num_words);
-		wprintf(L"%i ", num_words);
 		parse(line, num_words);
 	}
 

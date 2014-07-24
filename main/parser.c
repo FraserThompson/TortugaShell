@@ -39,7 +39,7 @@ void parse(wchar_t **cmdline, int num_words) {
 	line->redirectIn = NULL;
 	line->redirectOut = NULL;
 
-	if (debug_global > 1){ wprintf(L"PARSE: First item: %s\n", cmdline[0]); }
+	if (debug_global > 1){ wprintf(L"PARSE: Dealing with %i items. First item: %s\n", last_index, cmdline[0]); }
 
 	// First token will always be a command so add it to the struct and check type
 	line->command = emalloc(wcslen(cmdline[i] + 1) * sizeof(wchar_t));
