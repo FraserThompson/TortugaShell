@@ -11,13 +11,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <Windows.h>
 #include "parser.h"
 #include "myStrings.h"
 #include "shell.h"
 #include "cwd.h"
+#include "console.h"
 
-int debug_global = 1;
+int debug_global = 0;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
@@ -50,6 +50,7 @@ void *erealloc(void *ptr, size_t size){
 	}
 	return p;
 }
+
 
 /* -----WINDOWS----
 * Prints a wchar string to a location in the CONSOLE_OUTPUT with a specific set of attributes
@@ -93,11 +94,20 @@ void clearScreen(){
 	FillConsoleOutputAttribute(CONSOLE_OUTPUT, NULL, cells, coords, &written);
 }
 
+void clearLine(int width, int x, int y, WORD attributes){
+	DWORD written;
+	COORD coords;
+	coords.X = x;
+	coords.Y = y;
+	FillConsoleOutputAttribute(CONSOLE_OUTPUT, attributes, width, coords, &written);
+	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
+}
+
 /* -----WINDOWS----
 * Clears a space at the top and prints the wchar content string in the middle of it.
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT
 */
-void printHeader(wchar_t *content, HANDLE CONSOLE_OUTPUT){
+void printHeader(wchar_t *content){
 	int width = getConsoleWidth();
 	int len;
 	int center_x;
@@ -108,34 +118,42 @@ void printHeader(wchar_t *content, HANDLE CONSOLE_OUTPUT){
 	// Work out where to put stuff
 	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
 	len = wcslen(content);
-	center_x = width/2 - len/2;
+	center_x = width / 2 - len / 2;
 	topCoords.Y = screen_info.srWindow.Top;
 	topCoords.X = 0;
 
-	// Blank the top
-	FillConsoleOutputAttribute(CONSOLE_OUTPUT, HEADER_FOOTER_ATTRIBUTES, width, topCoords, &written);
-	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, topCoords, &written);
+	clearLine(width, topCoords.X, topCoords.Y, HEADER_FOOTER_ATTRIBUTES);
 
 	// Print the text
-	advPrint(content, CONSOLE_OUTPUT, center_x, topCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+	if (content != NULL){
+		advPrint(content, CONSOLE_OUTPUT, center_x, topCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
 
 }
 
-void printFooter(wchar_t *content, HANDLE CONSOLE_OUTPUT){
+/* -----WINDOWS----
+* Clears a space at the bottom and prints the wchar content string in the middle of it.
+* Params: Wchar string to print, handle of CONSOLE_OUTPUT
+*/
+void printFooter(wchar_t *content){
 	COORD bottomCoords;
 	DWORD written;
+	CONSOLE_SCREEN_BUFFER_INFO screen_info;
 	int width = getConsoleWidth();
-	bottomCoords.X = 0;
-	bottomCoords.Y = getConsoleHeight() - 1;
 
-	// Blank the bottom
-	FillConsoleOutputAttribute(CONSOLE_OUTPUT, HEADER_FOOTER_ATTRIBUTES, width, bottomCoords, &written);
-	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, bottomCoords, &written);
+	// Work out where to put stuff
+	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	bottomCoords.X = 0;
+	bottomCoords.Y = screen_info.srWindow.Bottom;
+
+	clearLine(width, bottomCoords.X, bottomCoords.Y, NORMAL_ATTRIBUTES);
 
 	// Print the text
-	advPrint(content, CONSOLE_OUTPUT, 0, bottomCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+	if (content != NULL){
+		advPrint(content, CONSOLE_OUTPUT, 0, bottomCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
 
@@ -146,50 +164,20 @@ void printFooter(wchar_t *content, HANDLE CONSOLE_OUTPUT){
 */
 static void drawPrompt(void) {
 	wchar_t *top = concat_string(L"", getCWD(), L"\n");
+	COORD current_cursor = getCursor();
+	int height = getConsoleHeight();
+	int width = getConsoleWidth();
+
+	if (current_cursor.Y >= height - 1){
+		clearLine(width, 0, height, NORMAL_ATTRIBUTES);
+		clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
+		current_cursor = moveCursor(0, 3, -1, -1);
+		current_cursor = moveCursor(0, -2, -1, -1);
+	}
+
 	wprintf(L"\n>");
-	printHeader(top, CONSOLE_OUTPUT);
-	printFooter(L"Start typing to begin...", CONSOLE_OUTPUT);
-}
-
-/* -----WINDOWS----
-* Gets the current console cursor position
-* Return: Cursor position
-*/
-static COORD getCursor(){
-	CONSOLE_SCREEN_BUFFER_INFO cursor_position;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &cursor_position);
-	return cursor_position.dwCursorPosition;
-}
-
-static int getConsoleWidth(){
-	CONSOLE_SCREEN_BUFFER_INFO console;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &console);
-	int width = console.dwSize.X;
-	return width;
-}
-
-static int getConsoleHeight(){
-	CONSOLE_SCREEN_BUFFER_INFO console;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &console);
-	//int height = console.dwSize.Y;
-	int height = console.srWindow.Bottom - console.srWindow.Top + 1;
-	return height;
-}
-
-/* -----WINDOWS----
-* Moves the console cursor to a specified position relative to current
-* Params: num of rows/columns to move
-* Return: The new position
-*/
-static COORD moveCursor(int x, int y) {
-	COORD coords;
-	CONSOLE_SCREEN_BUFFER_INFO cursor_position;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &cursor_position);
-	coords = cursor_position.dwCursorPosition;
-	coords.Y += y;
-	coords.X += x;
-	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);
-	return coords;
+	printHeader(top);
+	printFooter(L"Start typing to begin...");
 }
 
 
@@ -293,7 +281,7 @@ static wchar_t **readline(int *num_words) {
 				}
 			}
 			else {
-				cursor_loc = moveCursor(1, 0);
+				cursor_loc = moveCursor(1, 0,-1, -1);
 			}
 
 			putwchar(wcs_buffer);
@@ -352,17 +340,16 @@ static wchar_t **readline(int *num_words) {
 	line_buffer[k] = L'\0';
 
 	// Move cursor down a line
-	cursor_loc = moveCursor(0, 1);
+	cursor_loc = moveCursor(0, 1, -1, -1);
 
 	// Split into array
 	line_array = split(line_buffer, L" ", &count);
 	*num_words = count;
 
 	// Clear screen
-	clearScreen();
+	//clearScreen();
 
 	return line_array;
-	
 }
 
 

@@ -3,7 +3,7 @@
  */
 #ifndef PARSER
 #define PARSER
-#include "shell.h"
+#include "shell.h" //for the command_line struct
 
 extern void parse(wchar_t **, int);
 extern void display_info(command_line *);
