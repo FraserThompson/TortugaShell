@@ -16,6 +16,7 @@
 #include "shell.h"
 #include "cwd.h"
 #include "console.h"
+#include "bst.h"
 
 int debug_global = 0;
 wchar_t *PATH;
@@ -24,6 +25,8 @@ HANDLE CONSOLE_INPUT;
 int CONSOLE_TRANSPARENCY;
 WORD HEADER_FOOTER_ATTRIBUTES;
 WORD NORMAL_ATTRIBUTES;
+WORD PROMPT_ATTRIBUTES;
+node *command_tree;
 
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
@@ -85,23 +88,6 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 	SetConsoleCursorPosition(CONSOLE_OUTPUT, oldCoords);
 }
 
-void clearScreen(){
-	DWORD written;
-	COORD coords = { 0, 0 };
-	DWORD cells = getConsoleWidth() * getConsoleHeight();
-
-	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', cells, coords, &written);
-	FillConsoleOutputAttribute(CONSOLE_OUTPUT, NULL, cells, coords, &written);
-}
-
-void clearLine(int width, int x, int y, WORD attributes){
-	DWORD written;
-	COORD coords;
-	coords.X = x;
-	coords.Y = y;
-	FillConsoleOutputAttribute(CONSOLE_OUTPUT, attributes, width, coords, &written);
-	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
-}
 
 /* -----WINDOWS----
 * Clears a space at the top and prints the wchar content string in the middle of it.
@@ -130,7 +116,6 @@ void printHeader(wchar_t *content){
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
-
 }
 
 /* -----WINDOWS----
@@ -156,7 +141,6 @@ void printFooter(wchar_t *content){
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
-
 }
 
 /* -----WINDOWS----
@@ -165,42 +149,41 @@ void printFooter(wchar_t *content){
 static void drawPrompt(void) {
 	wchar_t *top = concat_string(L"", getCWD(), L"\n");
 	COORD current_cursor = getCursor();
+
 	int height = getConsoleHeight();
 	int width = getConsoleWidth();
 
 	if (current_cursor.Y >= height - 1){
+		//Clear footer
 		clearLine(width, 0, height, NORMAL_ATTRIBUTES);
+		//Clear header
 		clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
 		current_cursor = moveCursor(0, 3, -1, -1);
 		current_cursor = moveCursor(0, -2, -1, -1);
 	}
 
+	SetConsoleTextAttribute(CONSOLE_OUTPUT, PROMPT_ATTRIBUTES);
 	wprintf(L"\n>");
 	printHeader(top);
 	printFooter(L"Start typing to begin...");
 }
 
-
+/* -----WINDOWS----
+* Highlights known commands and prints usage tips
+* Return: 1 if match
+* Param: Command to check, count of characters in that command
+*/
 static int highlight_command(wchar_t *command, int wordchar_count){
 	COORD cursor_loc = getCursor();
 	WORD colours = FOREGROUND_GREEN;
 	DWORD num_read;
-	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
-	wchar_t *command_usage[NUM_COMMANDS] = { L"Usage: cwd [directory] [-h]", L"Usage: help", L"Usage: cd [directory] [-h]" };
+	node *parent;
+	node *result = bst_search(command_tree, command, &parent);
 
-	int match = -1;
-
-	for (int i = 0; i < NUM_COMMANDS; i++){
-		if (wcscmp(command, recognized_commands[i]) == 0){
-			match = i;
-			cursor_loc.X -= wordchar_count;
-			FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count, cursor_loc, &num_read);
-			break;
-		}
-	}
-
-	if (match != -1){
-		printFooter(command_usage[match], CONSOLE_OUTPUT);
+	if (result != NULL){
+		cursor_loc.X -= wordchar_count;
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count, cursor_loc, &num_read);
+		printFooter(result->title, CONSOLE_OUTPUT);
 	}
 
 	return 1;
@@ -218,7 +201,8 @@ static wchar_t **readline(int *num_words) {
 	wchar_t backspace_buffer = malloc(sizeof(wchar_t)); //buffers the character removed by the backspace
 	DWORD num_read;
 	DWORD backspace_read;
-	COORD cursor_loc = getCursor();
+	COORD cursor_loc;
+	COORD cursor_orig = getCursor();
 	int listening = 1;
 	int count;
 	int end_of_line;
@@ -232,13 +216,12 @@ static wchar_t **readline(int *num_words) {
 	int counter = 0;
 	wchar_t intstr[3];
 
-	FlushConsoleInputBuffer(CONSOLE_INPUT);
-
-	while (listening){
+	do {
+		FlushConsoleInputBuffer(CONSOLE_INPUT);
 		wcs_buffer = getwchar();
 		switch (wcs_buffer){
 
-		case 13:
+		case L'\r':
 			if (k != 0){
 				listening = 0;
 			}
@@ -247,7 +230,7 @@ static wchar_t **readline(int *num_words) {
 		case L'\b':
 			cursor_loc = getCursor();
 			// Only backspace if we're within the bounds
-			if (cursor_loc.X > 1 || cursor_loc.Y > 1){
+			if (cursor_loc.X > 1 || cursor_loc.Y > cursor_orig.Y){
 				end_of_line = cursor_loc.X == 0 ? 1 : 0;
 				backspace_buffer = line_buffer[k];
 				line_buffer[k--] = L'\0';
@@ -322,7 +305,7 @@ static wchar_t **readline(int *num_words) {
 
 		default:
 			if (word_count == 0){
-				printFooter(L"", CONSOLE_OUTPUT);
+				printFooter(L"");
 			}
 
 			line_buffer[k++] = wcs_buffer;
@@ -334,24 +317,104 @@ static wchar_t **readline(int *num_words) {
 			}
 			break;
 		}
-	}
+	} while (listening);
+
+	FlushConsoleInputBuffer(CONSOLE_INPUT);
 
 	// Add null termination
 	line_buffer[k] = L'\0';
 
+	// Clear header/footer
+	clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
+	printFooter(L"", CONSOLE_OUTPUT);
+
 	// Move cursor down a line
-	cursor_loc = moveCursor(0, 1, -1, -1);
+	cursor_loc = moveCursor(0, 1, 0, -1);
 
 	// Split into array
 	line_array = split(line_buffer, L" ", &count);
 	*num_words = count;
 
-	// Clear screen
-	//clearScreen();
-
 	return line_array;
 }
 
+node *build_command_tree(){
+	node *newnode, *temp, *parent;
+	node *root = NULL;
+	wchar_t *sDir = concat_string(PATH, L"\\commands\\*.*", NULL);
+	wchar_t sPath[2048];
+	wchar_t *result;
+	wchar_t *command_name;
+	WIN32_FIND_DATA fdFile;
+	HANDLE hFind = NULL;
+	command_line line = { NULL, NULL, NULL, NULL, 1 };
+	int error = 0;
+	int debug_old = debug_global;
+	debug_global = 0;
+	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
+	wchar_t *command_usage[NUM_COMMANDS] = { L"Usage: cwd [directory] [-h]", L"Usage: help", L"Usage: cd [directory] [-h]" };
+
+	// First add built in commands
+	for (int i = 0; i < NUM_COMMANDS; i++){
+		newnode = init_node();
+		newnode->title = malloc(sizeof(wchar_t)* wcslen(recognized_commands[i]));
+		newnode->description = malloc(sizeof(wchar_t)* wcslen(command_usage[i]));
+		wcscpy(newnode->title, recognized_commands[i]);
+		wcscpy(newnode->description, command_usage[i]);
+		if (root == NULL){
+			root = newnode;
+		}
+		else {
+			bst_insert(root, newnode);
+		}
+	}
+
+
+	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
+	{
+		wprintf(L"Path not found: [%s]\n", sDir);
+		return NULL;
+	}
+
+	do
+	{
+		{
+			wsprintf(sPath, L"%s\\%s", sDir, fdFile.cFileName);
+
+			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+			{
+				continue;
+			}
+			else {
+				newnode = init_node();
+
+				// Cut off extension
+				command_name = fdFile.cFileName;
+				command_name[wcslen(fdFile.cFileName) - 4] = 0;
+
+				// Copy to node
+				newnode->title = malloc(sizeof(wchar_t)* wcslen(command_name));
+				wcscpy(newnode->title, command_name);
+				if (debug_global) wprintf(L"Found command: %s\n", newnode->title);
+
+				/*line.params = L"-h";
+				error = create_child(line);
+				if (error != 0) {
+				printf("PRINT_HELP: Could not open.\n");
+				return;
+				}*/
+
+				bst_insert(root, newnode);
+
+
+			}
+		}
+	} while (FindNextFile(hFind, &fdFile));
+	//wprintf(L"\n"); // makes it tidier
+	FindClose(hFind);
+
+	return root;
+}
 
 /* 
 * Main loop. Reads a line and parses it.
@@ -373,7 +436,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	CONSOLE_INPUT = GetStdHandle(STD_INPUT_HANDLE);
 	ConsoleWindow = GetConsoleWindow();
 	SetConsoleTitle(L"Tortuga");
-	SetConsoleMode(CONSOLE_INPUT, (ENABLE_MOUSE_INPUT | ENABLE_PROCESSED_INPUT));
+	SetConsoleMode(CONSOLE_INPUT, (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS));
 
 	// Style stuff
 	CONSOLE_TRANSPARENCY = 240;
@@ -381,6 +444,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	SetLayeredWindowAttributes(ConsoleWindow, 0, CONSOLE_TRANSPARENCY, LWA_ALPHA);
 	HEADER_FOOTER_ATTRIBUTES = (FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE);
 	NORMAL_ATTRIBUTES = (FOREGROUND_INTENSITY);
+	PROMPT_ATTRIBUTES = (FOREGROUND_RED);
 
 	// Check for debug flag
 	while (argv[i]){
@@ -389,7 +453,10 @@ int wmain(int argc, wchar_t *argv[]) {
 		}
 		i++;
 	}
-	
+
+	command_tree = build_command_tree();
+	//inorder(command_tree);
+
 	// Main loop
 	while (1) {
 		drawPrompt();

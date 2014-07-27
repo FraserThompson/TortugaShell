@@ -31,7 +31,7 @@ void parse(wchar_t **cmdline, int num_words) {
 
 	// Initialize the struct
 	command_line *line = emalloc(sizeof(command_line));
-	line->params = malloc(sizeof(wchar_t));
+	line->params = emalloc(sizeof(wchar_t));
 	line->params = L"";
 	line->type = 0;
 	line->command = NULL;
