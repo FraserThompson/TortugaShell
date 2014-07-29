@@ -18,7 +18,7 @@
 #include "console.h"
 #include "bst.h"
 
-int debug_global = 1;
+int debug_global = 0;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
@@ -118,6 +118,12 @@ void printHeader(wchar_t *content){
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
 }
 
+int getConsoleBottom(){
+	CONSOLE_SCREEN_BUFFER_INFO screen_info;
+	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	return screen_info.srWindow.Bottom;
+}
+
 /* -----WINDOWS----
 * Clears a space at the bottom and prints the wchar content string in the middle of it.
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT
@@ -131,7 +137,7 @@ void printFooter(wchar_t *content){
 	// Work out where to put stuff
 	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
 	bottomCoords.X = 0;
-	bottomCoords.Y = screen_info.srWindow.Bottom;
+	bottomCoords.Y = getConsoleBottom() - 2;
 
 	clearLine(width, bottomCoords.X, bottomCoords.Y, NORMAL_ATTRIBUTES);
 
@@ -207,6 +213,7 @@ static wchar_t **readline(int *num_words) {
 	int count;
 	int end_of_line;
 	int width = getConsoleWidth();
+	int bottom = getConsoleBottom();
 	int k = 0; //number of charactres in line array
 	int word_count = 0; //number of words
 	int wordchar_count = 0; //number of characters in current word
@@ -232,7 +239,7 @@ static wchar_t **readline(int *num_words) {
 			// Only backspace if we're within the bounds
 			if (cursor_loc.X > 1 || cursor_loc.Y > cursor_orig.Y){
 				end_of_line = cursor_loc.X == 0 ? 1 : 0;
-				backspace_buffer = line_buffer[k];
+				backspace_buffer = line_buffer[k - 1];
 				line_buffer[k--] = L'\0';
 
 				if (wordchar_count != 0){
@@ -264,7 +271,7 @@ static wchar_t **readline(int *num_words) {
 				}
 			}
 			else {
-				cursor_loc = moveCursor(1, 0,-1, -1);
+				cursor_loc = moveCursor(1, 0, -1, -1);
 			}
 
 			putwchar(wcs_buffer);
@@ -276,18 +283,17 @@ static wchar_t **readline(int *num_words) {
 
 			// Blank any possible usage tips
 			if (word_count == 0){
-				printFooter(L"", CONSOLE_OUTPUT);
+				clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
 			}
 			break;
 
 		case L' ':
 			// Finish the word off
 			word_buffer[wordchar_count] = L'\0';
-
-			// If we're on the first word check to see if it's a recognized command
 			if (word_count == 0){
+				// If we're on the first word check to see if it's a recognized command
 				highlight_command(word_buffer, wordchar_count);
-			}
+			}	
 
 			word_count++;
 
@@ -304,13 +310,16 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		default:
-			if (word_count == 0){
-				printFooter(L"");
-			}
 
 			line_buffer[k++] = wcs_buffer;
 			word_buffer[wordchar_count++] = wcs_buffer;
 			putwchar(wcs_buffer);
+
+			// Blank any possible usage tips
+			if (word_count == 0){
+				clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
+			}
+
 			if (debug_global) {
 				swprintf(intstr, 3, L"%d", k);
 				advPrint(intstr, CONSOLE_OUTPUT, 2, 0, NULL);
@@ -319,6 +328,7 @@ static wchar_t **readline(int *num_words) {
 		}
 	} while (listening);
 
+
 	FlushConsoleInputBuffer(CONSOLE_INPUT);
 
 	// Add null termination
@@ -326,7 +336,7 @@ static wchar_t **readline(int *num_words) {
 
 	// Clear header/footer
 	clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
-	printFooter(L"", CONSOLE_OUTPUT);
+	clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
 
 	// Move cursor down a line
 	cursor_loc = moveCursor(0, 1, 0, -1);
@@ -358,7 +368,7 @@ node *build_command_tree(){
 	int debug_old = debug_global;
 	//debug_global = 0;
 	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
-	wchar_t *command_usage[NUM_COMMANDS] = { L"Usage: cwd [directory] [-h]", L"Usage: help", L"Usage: cd [directory] [-h]" };
+	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]", L"help\tPrints a list of possible commands.\n\tUsage: help", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]" };
 
 	// First add built in commands
 	for (int i = 0; i < NUM_COMMANDS; i++){
@@ -406,7 +416,7 @@ node *build_command_tree(){
 
 				// Copy to command_line
 				line->command = emalloc(sizeof(wchar_t) * wcslen(sPath));
-				//line->pipe = emalloc(sizeof(wchar_t) * 256);
+				line->pipe = NULL;
 				wcscpy(line->command, sPath);
 
 
@@ -416,10 +426,9 @@ node *build_command_tree(){
 				}
 
 				error = create_process(line);
-				wprintf(L"Pipe: %s\n", line->pipe);
 
-				/*newnode->description = malloc(sizeof(wchar_t)* wcslen(line->redirectOut));
-				strcpy(newnode->description, line->redirectOut);*/
+				newnode->description = malloc(sizeof(wchar_t)* wcslen(line->pipe));
+				wcscpy(newnode->description, line->pipe);
 
 				bst_insert(root, newnode);
 

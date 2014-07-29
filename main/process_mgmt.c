@@ -74,9 +74,10 @@ static int write_to_pipe(HANDLE inputFile){
 * Parameters: Location to write to
 * Return: Error code - 0 if success
 */
-static int read_from_pipe(wchar_t *out_file, wchar_t *pipe){
+static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
 	DWORD dwRead, dwWritten;
 	CHAR chBuf[BUFSIZE];
+	wchar_t *chBuf_w = emalloc(sizeof(wchar_t)* BUFSIZE);
 	BOOL success = FALSE;
 	HANDLE parent_out = NULL;
 	int error = 0;
@@ -105,8 +106,8 @@ static int read_from_pipe(wchar_t *out_file, wchar_t *pipe){
 		else {
 			chBuf[dwRead] = '\0';
 			if (debug_global){ printf("READ_FROM_PIPE: Successfully read '%s' from childs standard output pipe.\n", chBuf); }
-			*pipe = emalloc(sizeof(wchar_t) * wcslen(chBuf + 1));
-			wcscpy(pipe, L"the");
+			chBuf_w = convert_to_wchar(chBuf);
+			wcscpy(pipe, chBuf_w);
 		}
 
 		success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
@@ -300,7 +301,9 @@ int create_process(command_line *line) {
 
 	// Read from the childs output buffer
 	if (line->redirectOut){
-		rError = read_from_pipe(line->redirectOut, &line->pipe);
+		wchar_t *test[BUFSIZE];
+		rError = read_from_pipe(line->redirectOut, &test);
+		line->pipe = test;
 
 		if (rError != 0 && rError != 109){
 			pError = 50;
