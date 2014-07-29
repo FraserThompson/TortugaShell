@@ -71,7 +71,7 @@ static int write_to_pipe(HANDLE inputFile){
 
 /* -------WINDOWS------
 * Reads from a child processes pipe and write to a specified file or memory location
-* Parameters: Location to write to
+* Parameters: Location to write to, pointer to allocated wchar_t memory to hold stdout
 * Return: Error code - 0 if success
 */
 static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
@@ -83,7 +83,9 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
 	int error = 0;
 
 	// Open handle to output file
-	parent_out = CreateFileW(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (out_file != NULL){
+		parent_out = CreateFileW(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	}
 
 	// Close write end of pipe before reading read end
 	if (!CloseHandle(child_out_write)){
@@ -110,14 +112,16 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
 			wcscpy(pipe, chBuf_w);
 		}
 
-		success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
-		if (!success) {
-			error = GetLastError();
-			fwprintf(stderr, L"READ_FROM_PIPE: Error %u when writing to output pipe\n", error);
-			break;
-		}
-		else {
-			if (debug_global){ printf("READ_FROM_PIPE: Succesfully wrote '%s' to output pipe\n", chBuf); }
+		if (out_file != NULL) {
+			success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
+			if (!success) {
+				error = GetLastError();
+				fwprintf(stderr, L"READ_FROM_PIPE: Error %u when writing to output pipe\n", error);
+				break;
+			}
+			else {
+				if (debug_global){ printf("READ_FROM_PIPE: Succesfully wrote '%s' to output pipe\n", chBuf); }
+			}
 		}
 	}
 
@@ -298,12 +302,13 @@ int create_process(command_line *line) {
 		}
 	}
 
+	line->pipe = malloc(sizeof(wchar_t)* BUFSIZE);
+	rError = read_from_pipe(NULL, &line->pipe);
 
-	// Read from the childs output buffer
+	// Read from the childs output buffer and write to file
 	if (line->redirectOut){
-		wchar_t *test[BUFSIZE];
-		rError = read_from_pipe(line->redirectOut, &test);
-		line->pipe = test;
+		line->pipe = malloc(sizeof(wchar_t)* BUFSIZE);
+		rError = read_from_pipe(line->redirectOut, &line->pipe);
 
 		if (rError != 0 && rError != 109){
 			pError = 50;

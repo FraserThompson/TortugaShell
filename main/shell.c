@@ -363,7 +363,7 @@ node *build_command_tree(){
 	line->type = 1;
 	line->redirectIn = NULL;
 	line->pipe = NULL;
-	line->redirectOut = L"out.txt";
+	line->redirectOut = NULL;
 	int error = 0;
 	int debug_old = debug_global;
 	//debug_global = 0;
@@ -416,9 +416,7 @@ node *build_command_tree(){
 
 				// Copy to command_line
 				line->command = emalloc(sizeof(wchar_t) * wcslen(sPath));
-				line->pipe = NULL;
 				wcscpy(line->command, sPath);
-
 
 				if (error != 0) {
 					fwprintf(stderr, L"BUILD_COMMAND_TREE: Could not open.\n");

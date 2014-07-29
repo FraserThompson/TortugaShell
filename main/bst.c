@@ -16,7 +16,12 @@ void bst_insert(node *root, node *new_node)
 {
 	int comparison = wcscmp(new_node->title, root->title);
 
-	if (comparison <= 0)
+	// Skip if it's already there
+	if (comparison == 0){
+		return;
+	}
+
+	if (comparison < 0)
 	{
 		if (root->left == NULL) {
 			root->left = new_node;
