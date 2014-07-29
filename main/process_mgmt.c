@@ -70,11 +70,11 @@ static int write_to_pipe(HANDLE inputFile){
 }
 
 /* -------WINDOWS------
-* Reads from a child processes pipe and write to a specified file
+* Reads from a child processes pipe and write to a specified file or memory location
 * Parameters: Location to write to
 * Return: Error code - 0 if success
 */
-static int read_from_pipe(wchar_t *out_file){
+static int read_from_pipe(wchar_t *out_file, wchar_t *pipe){
 	DWORD dwRead, dwWritten;
 	CHAR chBuf[BUFSIZE];
 	BOOL success = FALSE;
@@ -105,7 +105,10 @@ static int read_from_pipe(wchar_t *out_file){
 		else {
 			chBuf[dwRead] = '\0';
 			if (debug_global){ printf("READ_FROM_PIPE: Successfully read '%s' from childs standard output pipe.\n", chBuf); }
+			*pipe = emalloc(sizeof(wchar_t) * wcslen(chBuf + 1));
+			wcscpy(pipe, L"the");
 		}
+
 		success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
 		if (!success) {
 			error = GetLastError();
@@ -294,9 +297,10 @@ int create_process(command_line *line) {
 		}
 	}
 
+
 	// Read from the childs output buffer
 	if (line->redirectOut){
-		rError = read_from_pipe(line->redirectOut);
+		rError = read_from_pipe(line->redirectOut, &line->pipe);
 
 		if (rError != 0 && rError != 109){
 			pError = 50;
@@ -304,10 +308,12 @@ int create_process(command_line *line) {
 	}
 
 	// Cleaning up
-	close_handles();
-	free(process_command);
+	//close_handles();
+	if (line->type == 0){
+		free(process_command);
+		free(process_params_ext);
+	}
 	free(process_params);
-	free(process_params_ext);
 	free(path_commands);
 	free(system_dir);
 

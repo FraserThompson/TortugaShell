@@ -18,7 +18,7 @@
 #include "console.h"
 #include "bst.h"
 
-int debug_global = 0;
+int debug_global = 1;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
@@ -183,7 +183,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	if (result != NULL){
 		cursor_loc.X -= wordchar_count;
 		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count, cursor_loc, &num_read);
-		printFooter(result->title, CONSOLE_OUTPUT);
+		printFooter(result->description, CONSOLE_OUTPUT);
 	}
 
 	return 1;
@@ -341,16 +341,22 @@ static wchar_t **readline(int *num_words) {
 node *build_command_tree(){
 	node *newnode, *temp, *parent;
 	node *root = NULL;
-	wchar_t *sDir = concat_string(PATH, L"\\commands\\*.*", NULL);
+	wchar_t *commandsDir = concat_string(PATH, L"\\commands", NULL);
+	wchar_t *sDir = concat_string(commandsDir, L"\\*.*", NULL);
 	wchar_t sPath[2048];
 	wchar_t *result;
 	wchar_t *command_name;
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
-	command_line line = { NULL, NULL, NULL, NULL, 1 };
+	command_line *line = emalloc(sizeof(command_line));
+	line->params = L"-h";
+	line->type = 1;
+	line->redirectIn = NULL;
+	line->pipe = NULL;
+	line->redirectOut = L"out.txt";
 	int error = 0;
 	int debug_old = debug_global;
-	debug_global = 0;
+	//debug_global = 0;
 	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
 	wchar_t *command_usage[NUM_COMMANDS] = { L"Usage: cwd [directory] [-h]", L"Usage: help", L"Usage: cd [directory] [-h]" };
 
@@ -379,7 +385,7 @@ node *build_command_tree(){
 	do
 	{
 		{
-			wsprintf(sPath, L"%s\\%s", sDir, fdFile.cFileName);
+			wsprintf(sPath, L"%s\\%s", commandsDir, fdFile.cFileName);
 
 			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
 			{
@@ -395,14 +401,25 @@ node *build_command_tree(){
 				// Copy to node
 				newnode->title = malloc(sizeof(wchar_t)* wcslen(command_name));
 				wcscpy(newnode->title, command_name);
+
 				if (debug_global) wprintf(L"Found command: %s\n", newnode->title);
 
-				/*line.params = L"-h";
-				error = create_child(line);
+				// Copy to command_line
+				line->command = emalloc(sizeof(wchar_t) * wcslen(sPath));
+				//line->pipe = emalloc(sizeof(wchar_t) * 256);
+				wcscpy(line->command, sPath);
+
+
 				if (error != 0) {
-				printf("PRINT_HELP: Could not open.\n");
-				return;
-				}*/
+					fwprintf(stderr, L"BUILD_COMMAND_TREE: Could not open.\n");
+					return;
+				}
+
+				error = create_process(line);
+				wprintf(L"Pipe: %s\n", line->pipe);
+
+				/*newnode->description = malloc(sizeof(wchar_t)* wcslen(line->redirectOut));
+				strcpy(newnode->description, line->redirectOut);*/
 
 				bst_insert(root, newnode);
 
