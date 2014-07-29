@@ -17,9 +17,9 @@ int wmain(int argc, wchar_t *argv[]){
 
 	wchar_t *path = argv[1];
 	if (!CreateDirectory(path, NULL)) {
-		printf("\nCouldn't create %S directory.\n", path);
+		wprintf(L"\nCouldn't create %S directory.\n", path);
 	}
 	else {
-		printf("\n%S directory successfully created.\n", path);
+		wprintf(L"\n%S directory successfully created.\n", path);
 	}
 }
