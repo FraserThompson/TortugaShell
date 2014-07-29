@@ -14,13 +14,13 @@
 /* -----CROSS PLATFORM----
 * Prints a string to stdout.
 */
-int main(int argc, char *argv[]){
+int wmain(int argc, wchar_t *argv[]){
 	int i = 0;
 
 	//Help message, printed by default if no arguments
 	while (argv[i]){
-		if (argc == 1 || ((strcmp(argv[i], "-help") == 0) || (strcmp(argv[i], "-h") == 0))) {
-			printf("echo\tPrints the user's message to the commandline.\n\tUsage: echo [message to print]\n");
+		if (argc == 1 || ((wcscmp(argv[i], "-help") == 0) || (wcscmp(argv[i], "-h") == 0))) {
+			wprintf(L"echo\tPrints the user's message to the commandline.\n\tUsage: echo [message to print]\n");
 			return EXIT_SUCCESS;
 		}
 		i++;
@@ -28,8 +28,8 @@ int main(int argc, char *argv[]){
 
 	i = 1;
 	while (argv[i]){
-		printf("%s ", argv[i++]);
+		wprintf(L"%s ", argv[i++]);
 	}
-	printf("\n");
+	wprintf(L"\n");
 	return EXIT_SUCCESS;
 }
