@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "process_mgmt.h"
 #include "parser.h"
 #include "myStrings.h"
 #include "shell.h"
@@ -159,12 +160,12 @@ static void drawPrompt(void) {
 	int height = getConsoleHeight();
 	int width = getConsoleWidth();
 
-	if (current_cursor.Y >= height - 1){
+	if (current_cursor.Y >= height - 4){
 		//Clear footer
 		clearLine(width, 0, height, NORMAL_ATTRIBUTES);
 		//Clear header
 		clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
-		current_cursor = moveCursor(0, 3, -1, -1);
+		current_cursor = moveCursor(0, 1, -1, -1);
 		current_cursor = moveCursor(0, -2, -1, -1);
 	}
 
@@ -363,10 +364,11 @@ node *build_command_tree(){
 	line->type = 1;
 	line->redirectIn = NULL;
 	line->pipe = NULL;
-	line->redirectOut = NULL;
+	line->redirectOut = L":var:";
+	line->output = NULL;
 	int error = 0;
 	int debug_old = debug_global;
-	//debug_global = 0;
+	debug_global = 0;
 	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
 	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]", L"help\tPrints a list of possible commands.\n\tUsage: help", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]" };
 
@@ -404,37 +406,37 @@ node *build_command_tree(){
 			else {
 				newnode = init_node();
 
-				// Cut off extension
+				// Cut off command extension
 				command_name = fdFile.cFileName;
 				command_name[wcslen(fdFile.cFileName) - 4] = 0;
 
-				// Copy to node
+				// Copy to command node
 				newnode->title = malloc(sizeof(wchar_t)* wcslen(command_name));
 				wcscpy(newnode->title, command_name);
 
 				if (debug_global) wprintf(L"Found command: %s\n", newnode->title);
 
-				// Copy to command_line
+				// Copy command to commandline struct for process calling
 				line->command = emalloc(sizeof(wchar_t) * wcslen(sPath));
 				wcscpy(line->command, sPath);
+
+				error = create_process(line);
 
 				if (error != 0) {
 					fwprintf(stderr, L"BUILD_COMMAND_TREE: Could not open.\n");
 					return;
 				}
 
-				error = create_process(line);
-
-				newnode->description = malloc(sizeof(wchar_t)* wcslen(line->pipe));
-				wcscpy(newnode->description, line->pipe);
+				wprintf(L"%s\n", line->output);
+				// Copy help description
+				newnode->description = emalloc(sizeof(wchar_t)* wcslen(line->output));
+				wcscpy(newnode->description, line->output);
+				//newnode->description = L"test\n";
 
 				bst_insert(root, newnode);
-
-
 			}
 		}
 	} while (FindNextFile(hFind, &fdFile));
-	//wprintf(L"\n"); // makes it tidier
 	FindClose(hFind);
 
 	return root;
@@ -479,7 +481,6 @@ int wmain(int argc, wchar_t *argv[]) {
 	}
 
 	command_tree = build_command_tree();
-	//inorder(command_tree);
 
 	// Main loop
 	while (1) {

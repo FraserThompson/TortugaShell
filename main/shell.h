@@ -8,6 +8,7 @@
 typedef struct command_line {
 	wchar_t  *command; //command
 	wchar_t  *params; //params
+	wchar_t *output; //storing process output
 	wchar_t  *redirectOut; //location to redirect output to, NULL if no redirection
 	wchar_t  *redirectIn; //location to redirect output from, NULL if no redirection
 	wchar_t  *pipe; //location to pipe output to, NULL if no redirection
