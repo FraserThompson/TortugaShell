@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <assert.h>
 #include "process_mgmt.h"
 #include "parser.h"
 #include "myStrings.h"
@@ -101,7 +102,7 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 * Clears a space at the top and prints the wchar content string in the middle of it.
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT
 */
-void printHeader(wchar_t *content){
+static void printHeader(wchar_t *content){
 	int width = getConsoleWidth();
 	int len;
 	int center_x;
@@ -128,7 +129,7 @@ void printHeader(wchar_t *content){
 * Clears a space at the bottom and prints the wchar content string in the middle of it.
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT
 */
-void printFooter(wchar_t *content){
+static void printFooter(wchar_t *content){
 	COORD bottomCoords;
 	DWORD written;
 	CONSOLE_SCREEN_BUFFER_INFO screen_info;
@@ -186,13 +187,35 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	node *parent;
 	node *result = bst_search(command_tree, command, &parent);
 
+	if (does_file_exist(command)){
+		cursor_loc.X -= wordchar_count;
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count + 1, cursor_loc, &num_read);
+	}
+
 	if (result != NULL){
 		cursor_loc.X -= wordchar_count;
 		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count + 1, cursor_loc, &num_read);
 		printFooter(result->description, CONSOLE_OUTPUT);
 	}
 
+
 	return 1;
+}
+
+/* -----WINDOWS----
+* Check to see if a file exists
+* Return: 1 if exists
+* Param: Path of file to check
+*/
+static int does_file_exist(wchar_t *command){
+	WIN32_FIND_DATA FindFileData;
+	HANDLE handle = FindFirstFile(command, &FindFileData);
+	int found = handle != INVALID_HANDLE_VALUE;
+	if (found)
+	{
+		FindClose(handle);
+	}
+	return found;
 }
 
 
@@ -290,8 +313,6 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		case L' ':
-			//Check to see if the file exists here maybe
-
 			word_count++;
 			if (debug_global) {
 				swprintf(intstr, 3, L"%d", word_count);
@@ -353,7 +374,7 @@ static wchar_t **readline(int *num_words) {
 * Scans the ./commands/ directory and makes a node containing the name of each exe and what it prints when called with -h. 
 * Return: Root node of BST 
 */
-node *build_command_tree(void){
+static node *build_command_tree(void){
 	node *newnode, *temp, *parent;
 	node *root = NULL;
 	wchar_t *commandsDir = concat_string(PATH, L"\\commands", NULL);
@@ -431,7 +452,6 @@ node *build_command_tree(void){
 					return;
 				}
 
-				wprintf(L"%s\n", line->output);
 				// Copy help description
 				newnode->description = emalloc(sizeof(wchar_t)* wcslen(line->output));
 				wcscpy(newnode->description, line->output);
@@ -486,12 +506,15 @@ int wmain(int argc, wchar_t *argv[]) {
 		i++;
 	}
 
+	// Build command BST from ./commands directory
 	command_tree = build_command_tree();
+	assert(command_tree != NULL);
 
 	// Main loop
 	while (1) {
 		drawPrompt();
 		line = readline(&num_words);
+		assert(num_words > 0);
 		parse(line, num_words);
 	}
 
