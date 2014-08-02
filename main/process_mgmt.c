@@ -134,6 +134,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 		else {
 			chBuf_w = convert_to_wchar(chBuf);
 			wcscpy(variable, chBuf_w);
+			free(chBuf_w);
 		}
 	}
 
@@ -146,6 +147,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 		}
 
 	}
+
 
 	return error;
 }
@@ -253,7 +255,6 @@ int create_process(command_line *line) {
 			return 50;
 		}
 	}
-
 	if (line->redirectIn){
 		rError = open_input_pipe(line->redirectIn);
 		if (rError != 0){
@@ -326,8 +327,7 @@ int create_process(command_line *line) {
 	if (line->redirectOut){
 		wchar_t *tempBuf[BUFSIZE];
 		rError = read_from_pipe(line->redirectOut, &tempBuf);
-		line->output = emalloc(sizeof(wchar_t)* wcslen(tempBuf));
-		wcscpy(line->output, tempBuf);
+		line->output = _wcsdup(tempBuf);
 
 		if (rError != 0 && rError != 109){
 			pError = 50;
@@ -336,10 +336,12 @@ int create_process(command_line *line) {
 
 	// Cleaning up
 	close_handles();
+
 	if (line->type == 0){
 		free(process_command);
 		free(process_params_ext);
 	}
+
 	free(process_params);
 	free(path_commands);
 	free(system_dir);
@@ -393,7 +395,6 @@ int create_child(wchar_t *command, wchar_t *params){
 }
 
 static void close_handles(){
-
 	if (!CloseHandle(child_in_write)) {
 		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
 	}

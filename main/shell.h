@@ -4,6 +4,7 @@
 #ifndef SHELL
 #define SHELL
 #include <Windows.h>
+#include "bst.h"
 
 typedef struct command_line {
 	wchar_t  *command; //command
@@ -23,6 +24,7 @@ extern HANDLE CONSOLE_OUTPUT;
 extern int CONSOLE_TRANSPARENCY;
 extern WORD HEADER_FOOTER_ATTRIBUTES;
 extern WORD NORMAL_ATTRIBUTES;
+extern node *command_tree;
 
 // Methods
 extern void *emalloc(size_t);
@@ -31,5 +33,9 @@ extern wchar_t **readline(int);
 extern void advPrint(wchar_t *, HANDLE, int, int, WORD);
 extern void printHeader(wchar_t *);
 extern void printFooter(wchar_t *);
+extern command_line *init_command_line(wchar_t *, wchar_t *, wchar_t *, wchar_t *, wchar_t *, int);
+extern void free_word_array(wchar_t **, int);
+extern void free_command_line(command_line *);
+extern int does_file_exist(wchar_t *);
 
 #endif

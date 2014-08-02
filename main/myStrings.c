@@ -54,12 +54,10 @@ wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
 * Return: Array of words
 */
 wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
-	wchar_t *token;
+	int count = 0;
 	wchar_t **commands = 0;
 	wchar_t *newline;
-	int count = 0;
-
-	token = wcstok(str, delimiter);
+	wchar_t *token = wcstok(str, delimiter);
 
 	if (debug_global > 1){ wprintf(L"SPLIT: Input: %s\n", str); }
 
@@ -73,7 +71,7 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 		}
 
 		commands = erealloc(commands, sizeof(wchar_t*)* ++count);
-		commands[count - 1] = token;
+		commands[count - 1] = _wcsdup(token);
 		token = wcstok(0, delimiter);
 		if (debug_global > 1){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
@@ -82,6 +80,9 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 	commands = erealloc(commands, sizeof (wchar_t*)* (count + 1));
 
 	commands[count] = 0;
+
+	free(token);
+
 	if (debug_global > 1){ wprintf(L"SPLIT: Returning %i tokens\n", count); }
 	*last_index = count;
 	return commands;

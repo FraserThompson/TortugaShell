@@ -20,6 +20,7 @@
 #include "process_mgmt.h"
 #define BUFSIZE 4096
 
+
 /* -----CROSS PLATFORM----
 * Processes a commandline
 * Parameter: Line to process
@@ -30,21 +31,12 @@ void parse(wchar_t **cmdline, int num_words) {
 	int error;
 
 	// Initialize the struct
-	command_line *line = emalloc(sizeof(command_line));
-	line->params = emalloc(sizeof(wchar_t));
-	line->params = L"";
-	line->type = 0;
-	line->command = NULL;
-	line->pipe = NULL;
-	line->output = NULL;
-	line->redirectIn = NULL;
-	line->redirectOut = NULL;
+	command_line *line = init_command_line(NULL, L"", NULL, NULL, NULL, 0);
 
 	if (debug_global > 1){ wprintf(L"PARSE: Dealing with %i items. First item: %s\n", last_index, cmdline[0]); }
 
 	// First token will always be a command so add it to the struct and check type
-	line->command = emalloc(wcslen(cmdline[i] + 1) * sizeof(wchar_t));
-	wcscpy(line->command, cmdline[i]);
+	line->command = _wcsdup(cmdline[i]);
 	line->type = get_command_type(cmdline[i]);
 
 	// Checking for internal commands 
@@ -78,13 +70,11 @@ void parse(wchar_t **cmdline, int num_words) {
 
 			if (wcscmp(cmdline[i], L">") == 0){
 				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %s\n", cmdline[i + 1]);
-				line->redirectOut = emalloc(wcslen(cmdline[++i]) * sizeof(wchar_t));
-				wcscpy(line->redirectOut, cmdline[i]);
+				line->redirectOut = _wcsdup(cmdline[i]);
 			}
 			else if (wcscmp(cmdline[i], L"<") == 0){
 				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", cmdline[i + 1]);
-				line->redirectIn = emalloc(wcslen(cmdline[++i]) * sizeof(wchar_t));
-				wcscpy(line->redirectIn, cmdline[i]);
+				line->redirectOut = _wcsdup(cmdline[i]);
 			}
 			else {
 				if (debug_global) wprintf(L"PARSE: Adding parameter %s\n", cmdline[i]);
@@ -108,20 +98,11 @@ void parse(wchar_t **cmdline, int num_words) {
 		fwprintf(stderr, L"PARSE: Redirection error.\n");
 	}
 
-	// Free the stuff we don't need any more
-	free(cmdline);
-	//free_stuff(cmdline, last_index);
+	free_word_array(cmdline, last_index);
+	free_command_line(line);
 
 }
 
-static void free_stuff(wchar_t **cmdline, int last_index){
-	int i = 0;
-	while (i < last_index - 1){
-		wprintf(L"Freeing: %s", cmdline[i]);
-		free(cmdline[i]);
-		i++;
-	}
-}
 
 /* -------CROSS-PLATFORM------
 * Prints the info contained in the command_line struct
@@ -139,10 +120,9 @@ void display_info(command_line *line){
 * Return: path to the system dir
 */
 wchar_t *get_system_dir(void){
-	size_t size = 100;
 	wchar_t buffer[BUFSIZE];
 	if (debug_global > 1){ wprintf(L"GET_SYSTEM_DIR: Getting system dir...\n"); }
-	if (!GetSystemDirectory(buffer, size)){
+	if (!GetSystemDirectory(buffer, BUFSIZE)){
 		wprintf(L"GET_SYSTEM_DIR: Error getting system dir!\n");
 		exit(EXIT_FAILURE);
 	}

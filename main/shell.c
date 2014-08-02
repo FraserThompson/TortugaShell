@@ -19,7 +19,6 @@
 #include "shell.h"
 #include "cwd.h"
 #include "console.h"
-#include "bst.h"
 
 int debug_global = 1;
 wchar_t *PATH;
@@ -57,6 +56,97 @@ void *erealloc(void *ptr, size_t size){
 	return p;
 }
 
+/* -----CROSS-PLATFORM----
+* Inits a command line struct.
+* Return: Allocated and initialized pointer to command line struct.
+*/
+command_line *init_command_line(wchar_t *command, wchar_t *params, wchar_t *pipe, wchar_t *redirectIn, wchar_t *redirectOut, int type){
+	command_line *line = emalloc(sizeof(command_line));
+
+	if (params){
+		line->params = _wcsdup(params);
+	}
+	else {
+		line->params = NULL;
+	}
+
+	if (command != NULL){
+		line->command = _wcsdup(command);
+	}
+	else {
+		line->command = NULL;
+	}
+
+	if (pipe != NULL){
+		line->pipe = _wcsdup(pipe);
+	}
+	else {
+		line->pipe = NULL;
+	}
+
+	if (redirectIn != NULL){
+		line->redirectIn = _wcsdup(redirectIn);
+	}
+	else {
+		line->redirectIn = NULL;
+	}
+
+	if (redirectOut != NULL){
+		line->redirectOut = _wcsdup(redirectOut);
+	}
+	else {
+		line->redirectOut = NULL;
+	}
+	
+	line->type = type;
+	line->output = NULL;
+
+	return line;
+}
+
+/* -----CROSS-PLATFORM----
+* Frees a two dimensional array
+* Params: Array to free, last index in array
+*/
+void free_word_array(wchar_t **cmdline, int last_index){
+	int i = 0;
+	if (debug_global > 1) wprintf(L"FREE_WORD_ARRAY: Freeing %i items...\n", last_index);
+	free(cmdline[i++]);
+
+	while (i < last_index - 1){
+		free(cmdline[i]);
+		i++;
+	}
+
+}
+
+/* -----CROSS-PLATFORM----
+* Frees a command_line struct
+* Param: Struct to free
+*/
+void free_command_line(command_line *line){
+	if (debug_global > 1) wprintf(L"FREE_COMMAND_LINE: Freeing struct\n");
+
+	if (line->command){
+		free(line->command);
+	}
+	if (line->output){
+		free(line->output);
+	}
+	if (line->params){
+		free(line->params);
+	}
+	if (line->pipe){
+		free(line->pipe);
+	}
+	if (line->redirectIn){
+		free(line->redirectIn);
+	}
+	if (line->redirectOut){
+		free(line->redirectOut);
+	}
+	free(line);
+}
 
 /* -----WINDOWS----
 * Prints a wchar string to a location in the CONSOLE_OUTPUT with a specific set of attributes
@@ -199,7 +289,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	if (result != NULL){
 		cursor_loc.X -= wordchar_count;
 		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count + 1, cursor_loc, &num_read);
-		printFooter(result->description, CONSOLE_OUTPUT);
+		printFooter(result->description);
 	}
 
 
@@ -231,8 +321,9 @@ static wchar_t **readline(int *num_words) {
 	wchar_t **line_array; //the completed line split into an array
 	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds each space seperated word
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
-	wchar_t backspace_buffer = malloc(sizeof(wchar_t)); //buffers the character removed by the backspace
-	wint_t wcs_buffer = malloc(sizeof(wchar_t)); //buffers each character typed
+	wchar_t backspace_buffer = emalloc(sizeof(wchar_t)); //buffers the character removed by the backspace
+	backspace_buffer = NULL;
+	wint_t wcs_buffer = emalloc(sizeof(wchar_t)); //buffers each character typed
 	DWORD num_read;
 	DWORD backspace_read;
 	COORD cursor_loc;
@@ -256,7 +347,6 @@ static wchar_t **readline(int *num_words) {
 		switch (wcs_buffer){
 
 		case L'\r':
-			wprintf(L"\nreturn\n");
 			if (k != 0){
 				listening = 0;
 			}
@@ -330,7 +420,6 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		default:
-
 			line_buffer[k++] = wcs_buffer;
 			word_buffer[wordchar_count++] = wcs_buffer;
 
@@ -353,7 +442,6 @@ static wchar_t **readline(int *num_words) {
 		}
 	} while (listening && k < MAX_LINE - 1);
 
-
 	FlushConsoleInputBuffer(CONSOLE_INPUT);
 
 	// Add null termination
@@ -369,6 +457,9 @@ static wchar_t **readline(int *num_words) {
 	// Split into array
 	line_array = split(line_buffer, L" ", &count);
 	*num_words = count;
+
+	free(word_buffer);
+	free(line_buffer);
 
 	return line_array;
 }
@@ -387,13 +478,7 @@ static node *build_command_tree(void){
 	wchar_t *command_name;
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
-	command_line *line = emalloc(sizeof(command_line));
-	line->params = L"-h";
-	line->type = 1;
-	line->redirectIn = NULL;
-	line->pipe = NULL;
-	line->redirectOut = L":var:";
-	line->output = NULL;
+	command_line *line = init_command_line(NULL, L"-h", NULL, NULL, L":var:", 1);
 	int error = 0;
 	int debug_old = debug_global;
 	debug_global = 0;
@@ -403,10 +488,9 @@ static node *build_command_tree(void){
 	// First add built in commands
 	for (int i = 0; i < NUM_COMMANDS; i++){
 		newnode = init_node();
-		newnode->title = malloc(sizeof(wchar_t)* wcslen(recognized_commands[i]));
-		newnode->description = malloc(sizeof(wchar_t)* wcslen(command_usage[i]));
-		wcscpy(newnode->title, recognized_commands[i]);
-		wcscpy(newnode->description, command_usage[i]);
+		newnode->title = _wcsdup(recognized_commands[i]);
+		newnode->description = _wcsdup(command_usage[i]);
+
 		if (root == NULL){
 			root = newnode;
 		}
@@ -439,14 +523,12 @@ static node *build_command_tree(void){
 				command_name[wcslen(fdFile.cFileName) - 4] = 0;
 
 				// Copy to command node
-				newnode->title = malloc(sizeof(wchar_t)* wcslen(command_name));
-				wcscpy(newnode->title, command_name);
+				newnode->title = _wcsdup(command_name);
 
 				if (debug_global) wprintf(L"Found command: %s\n", newnode->title);
 
 				// Copy command to commandline struct for process calling
-				line->command = emalloc(sizeof(wchar_t) * wcslen(sPath));
-				wcscpy(line->command, sPath);
+				line->command = _wcsdup(sPath);
 
 				error = create_process(line);
 
@@ -456,9 +538,7 @@ static node *build_command_tree(void){
 				}
 
 				// Copy help description
-				newnode->description = emalloc(sizeof(wchar_t)* wcslen(line->output));
-				wcscpy(newnode->description, line->output);
-				//newnode->description = L"test\n";
+				newnode->description = _wcsdup(line->output);
 
 				bst_insert(root, newnode);
 			}
@@ -467,6 +547,10 @@ static node *build_command_tree(void){
 	FindClose(hFind);
 
 	debug_global = debug_old;
+
+	free(commandsDir);
+	free(sDir);
+	//free_command_line(line); //why doesn't this work?
 
 	return root;
 }
@@ -523,5 +607,7 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	free(PATH);
 	free(line);
+	bst_free(command_tree);
+
 	return EXIT_SUCCESS;
 }

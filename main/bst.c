@@ -69,7 +69,19 @@ void inorder(node *temp)
 	if (temp != NULL)
 	{
 		inorder(temp->left);
-		wprintf(L"%s\n", temp->title);
+		wprintf(L"%s\n", temp->description);
+		inorder(temp->right);
+	}
+}
+
+
+void bst_free(node *temp)
+{
+	if (temp != NULL)
+	{
+		inorder(temp->left);
+		free(temp->title);
+		free(temp->description);
 		inorder(temp->right);
 	}
 	else {

@@ -11,6 +11,5 @@ extern wchar_t  *get_system_dir(void);
 extern wchar_t  *get_commands_dir(void);
 extern wchar_t  *get_command_ext(wchar_t *);
 extern int get_command_type(wchar_t *);
-extern void free_stuff(wchar_t **, int);
 
 #endif

@@ -17,5 +17,6 @@ extern void preorder(node *);
 extern void postorder(node *);
 extern node *bst_search(node *, wchar_t *, node **);
 extern node *init_node();
+extern void bst_free(node *);
 
 #endif
