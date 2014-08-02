@@ -19,11 +19,11 @@
 #define BUFSIZE 4096
 #define NUM_DIRS 3
 
-HANDLE child_out_read = NULL;
-HANDLE child_out_write = NULL;
-HANDLE child_in_read = NULL;
-HANDLE child_in_write = NULL;
-HANDLE inputFile = NULL;
+HANDLE child_out_read;
+HANDLE child_out_write;
+HANDLE child_in_read;
+HANDLE child_in_write;
+HANDLE inputFile;
 SECURITY_ATTRIBUTES sa;
 
 /* -------WINDOWS------
@@ -62,6 +62,14 @@ static int write_to_pipe(HANDLE inputFile){
 		return EXIT_FAILURE;
 	}
 
+
+	if (!CloseHandle(child_out_write)) {
+		if (debug_global > 1) wprintf(L"CLEAN_UPE: Error %u when closing child output write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+	}
+	else {
+		if (debug_global) wprintf(L"CLEAN_UP: Child output write pipe handle closed.\n");
+	}
+
 	if (!CloseHandle(inputFile)){
 		fwprintf(stderr, L"WRITE_TO_PIPE: Error closing input file handle.\n");
 		return EXIT_FAILURE;
@@ -74,17 +82,17 @@ static int write_to_pipe(HANDLE inputFile){
 * Parameters: Location to write to, pointer to allocated wchar_t memory to hold stdout
 * Return: Error code - 0 if success
 */
-static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
+static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 	DWORD dwRead, dwWritten;
 	CHAR chBuf[BUFSIZE];
 	wchar_t *chBuf_w = emalloc(sizeof(wchar_t)* BUFSIZE);
 	BOOL success = FALSE;
 	HANDLE parent_out = NULL;
 	int error = 0;
-	int var = wcscmp(out_file, L":var:");
+	int isVar = wcscmp(out_file, L":var:");
 
-	// Open handle to output file
-	if (var != 0){
+	// Open handle to output file unless we want to return a variable
+	if (isVar != 0){
 		parent_out = CreateFileW(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
@@ -112,7 +120,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
 
 		}
 
-		if (var != 0) {
+		if (isVar != 0) {
 			success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
 			if (!success) {
 				error = GetLastError();
@@ -125,17 +133,18 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **pipe){
 		}
 		else {
 			chBuf_w = convert_to_wchar(chBuf);
-			wcscpy(pipe, chBuf_w);
+			wcscpy(variable, chBuf_w);
 		}
 	}
 
-	if (var != 0){
+	if (isVar != 0){
 		if (!CloseHandle(parent_out)){
 			fwprintf(stderr, L"READ_FROM_PIPE: Error %u when closing output handle.", GetLastError());
 		}
 		else {
 			if (debug_global){ wprintf(L"READ_FROM_PIPE: Output pipe handle closed.\n"); }
 		}
+
 	}
 
 	return error;
@@ -219,6 +228,11 @@ int create_process(command_line *line) {
 	wchar_t  *path_commands = get_commands_dir(); // PATH/commands/
 	wchar_t  *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	wchar_t  *dirs[NUM_DIRS] = { path_commands, system_dir, L"./" };
+	child_out_read = NULL;
+	child_out_write = NULL;
+	child_in_read = NULL;
+	child_in_write = NULL;
+	inputFile = NULL;
 	int pError = 0;
 	int rError = 0;
 	int i = 0;
@@ -386,14 +400,6 @@ static void close_handles(){
 	else {
 		if (debug_global) wprintf(L"CLEAN_UP: Child input write pipe handle closed.\n");
 	}
-
-/*	if (!CloseHandle(child_out_write)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UPE: Error %u when closing child output write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
-	}
-	else {
-		if (debug_global) wprintf(L"CLEAN_UP: Child output write pipe handle closed.\n");
-	}*/
-
 
 	if (!CloseHandle(child_in_read)) {
 		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());

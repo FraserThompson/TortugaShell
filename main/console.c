@@ -1,14 +1,29 @@
 #include "shell.h"
 
-void clearScreen(){
-	DWORD written;
-	COORD coords = { 0, 0 };
-	DWORD cells = getConsoleWidth() * getConsoleHeight();
-
-	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', cells, coords, &written);
-	FillConsoleOutputAttribute(CONSOLE_OUTPUT, NULL, cells, coords, &written);
+/* -----WINDOWS----
+* Returns the coordinate of the top visible line of the console
+* Return: Integer value of top coordinate
+*/
+int getConsoleTop(void){
+	CONSOLE_SCREEN_BUFFER_INFO screen_info;
+	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	return screen_info.srWindow.Top;
 }
 
+/* -----WINDOWS----
+* Returns the coordinate of the bottom visible line of the console
+* Return: Integer value of bottom coordinate
+*/
+int getConsoleBottom(void){
+	CONSOLE_SCREEN_BUFFER_INFO screen_info;
+	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	return screen_info.srWindow.Bottom;
+}
+
+/* -----WINDOWS----
+* Clears a console line
+* Params: Number of characters to clear, x coord, y coord, attributes to set line to
+*/
 void clearLine(int width, int x, int y, WORD attributes){
 	DWORD written;
 	COORD coords;
@@ -24,7 +39,6 @@ void clearLine(int width, int x, int y, WORD attributes){
 	FillConsoleOutputAttribute(CONSOLE_OUTPUT, attributes, width, coords, &written);
 	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
 }
-
 
 /* -----WINDOWS----
 * Gets the current console cursor position

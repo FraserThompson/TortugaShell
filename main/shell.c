@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 #include "process_mgmt.h"
 #include "parser.h"
 #include "myStrings.h"
@@ -19,7 +20,7 @@
 #include "console.h"
 #include "bst.h"
 
-int debug_global = 0;
+int debug_global = 1;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
@@ -73,10 +74,16 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 		coords.X = oldCoords.X;
 		coords.Y = oldCoords.Y;
 	}
+	else if (y == 0){
+		coords.Y = getConsoleTop();
+		coords.X = x;
+	}
 	else {
 		coords.X = x;
 		coords.Y = y;
 	}
+
+
 
 	// If no attributes are supplied then it's a darkish gray
 	if (attributes == NULL){
@@ -99,14 +106,12 @@ void printHeader(wchar_t *content){
 	int len;
 	int center_x;
 	COORD topCoords;
-	CONSOLE_SCREEN_BUFFER_INFO screen_info;
 	DWORD written;
 
 	// Work out where to put stuff
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
 	len = wcslen(content);
 	center_x = width / 2 - len / 2;
-	topCoords.Y = screen_info.srWindow.Top;
+	topCoords.Y = getConsoleTop();
 	topCoords.X = 0;
 
 	clearLine(width, topCoords.X, topCoords.Y, HEADER_FOOTER_ATTRIBUTES);
@@ -117,12 +122,6 @@ void printHeader(wchar_t *content){
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
-}
-
-int getConsoleBottom(){
-	CONSOLE_SCREEN_BUFFER_INFO screen_info;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
-	return screen_info.srWindow.Bottom;
 }
 
 /* -----WINDOWS----
@@ -160,13 +159,13 @@ static void drawPrompt(void) {
 	int height = getConsoleHeight();
 	int width = getConsoleWidth();
 
-	if (current_cursor.Y >= height - 4){
+	if (current_cursor.Y >= height - 5){
 		//Clear footer
 		clearLine(width, 0, height, NORMAL_ATTRIBUTES);
 		//Clear header
 		clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
-		current_cursor = moveCursor(0, 1, -1, -1);
-		current_cursor = moveCursor(0, -2, -1, -1);
+		current_cursor = moveCursor(0, 4, -1, -1);
+		current_cursor = moveCursor(0, -5, -1, -1);
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, PROMPT_ATTRIBUTES);
@@ -189,12 +188,13 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 	if (result != NULL){
 		cursor_loc.X -= wordchar_count;
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count, cursor_loc, &num_read);
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count + 1, cursor_loc, &num_read);
 		printFooter(result->description, CONSOLE_OUTPUT);
 	}
 
 	return 1;
 }
+
 
 /* -----WINDOWS----
 * Prints a prompt, interprets user input.
@@ -204,7 +204,7 @@ static wchar_t **readline(int *num_words) {
 	wchar_t **line_array;
 	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds a word
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
-	wchar_t wcs_buffer = malloc(sizeof(wchar_t)); //buffers each character typed
+	wint_t wcs_buffer = malloc(sizeof(wchar_t)); //buffers each character typed
 	wchar_t backspace_buffer = malloc(sizeof(wchar_t)); //buffers the character removed by the backspace
 	DWORD num_read;
 	DWORD backspace_read;
@@ -227,9 +227,10 @@ static wchar_t **readline(int *num_words) {
 	do {
 		FlushConsoleInputBuffer(CONSOLE_INPUT);
 		wcs_buffer = getwchar();
+
 		switch (wcs_buffer){
 
-		case L'\r':
+		case 13:
 			if (k != 0){
 				listening = 0;
 			}
@@ -289,15 +290,9 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		case L' ':
-			// Finish the word off
-			word_buffer[wordchar_count] = L'\0';
-			if (word_count == 0){
-				// If we're on the first word check to see if it's a recognized command
-				highlight_command(word_buffer, wordchar_count);
-			}	
+			//Check to see if the file exists here maybe
 
 			word_count++;
-
 			if (debug_global) {
 				swprintf(intstr, 3, L"%d", word_count);
 				advPrint(intstr, CONSOLE_OUTPUT, 0, 0, NULL);
@@ -314,11 +309,16 @@ static wchar_t **readline(int *num_words) {
 
 			line_buffer[k++] = wcs_buffer;
 			word_buffer[wordchar_count++] = wcs_buffer;
+
 			putwchar(wcs_buffer);
 
-			// Blank any possible usage tips
 			if (word_count == 0){
+				// Blank any possible usage tips
 				clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
+
+				// Check to see if the command is recognized
+				word_buffer[wordchar_count] = L'\0';
+				highlight_command(word_buffer, wordchar_count);
 			}
 
 			if (debug_global) {
@@ -349,11 +349,15 @@ static wchar_t **readline(int *num_words) {
 	return line_array;
 }
 
-node *build_command_tree(){
+/* -----WINDOWS----
+* Scans the ./commands/ directory and makes a node containing the name of each exe and what it prints when called with -h. 
+* Return: Root node of BST 
+*/
+node *build_command_tree(void){
 	node *newnode, *temp, *parent;
 	node *root = NULL;
 	wchar_t *commandsDir = concat_string(PATH, L"\\commands", NULL);
-	wchar_t *sDir = concat_string(commandsDir, L"\\*.*", NULL);
+	wchar_t *sDir = concat_string(commandsDir, L"\\*.exe", NULL);
 	wchar_t sPath[2048];
 	wchar_t *result;
 	wchar_t *command_name;
@@ -387,7 +391,7 @@ node *build_command_tree(){
 		}
 	}
 
-
+	// Now search ./commands/ 
 	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
 	{
 		wprintf(L"Path not found: [%s]\n", sDir);
@@ -438,6 +442,8 @@ node *build_command_tree(){
 		}
 	} while (FindNextFile(hFind, &fdFile));
 	FindClose(hFind);
+
+	debug_global = debug_old;
 
 	return root;
 }

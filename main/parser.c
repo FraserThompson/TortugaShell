@@ -36,6 +36,7 @@ void parse(wchar_t **cmdline, int num_words) {
 	line->type = 0;
 	line->command = NULL;
 	line->pipe = NULL;
+	line->output = NULL;
 	line->redirectIn = NULL;
 	line->redirectOut = NULL;
 

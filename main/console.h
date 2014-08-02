@@ -10,7 +10,8 @@ extern COORD getCursor(void);
 extern COORD moveCursor(int, int, int, int);
 extern int getConsoleWidth(void);
 extern int getConsoleHeight(void);
-extern void clearScreen();
+extern int getConsoleTop(void);
+extern int getConsoleBottom(void);
 extern void clearLine(int, int, int, WORD);
 
 #endif
