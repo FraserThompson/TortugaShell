@@ -156,17 +156,21 @@ static void printFooter(wchar_t *content){
 static void drawPrompt(void) {
 	wchar_t *top = concat_string(L"", getCWD(), L"\n");
 	COORD current_cursor = getCursor();
-
 	int height = getConsoleHeight();
 	int width = getConsoleWidth();
 
-	if (current_cursor.Y >= height - 5){
+	// If we're going to be printing over the footer then move everything down
+	if (current_cursor.Y >= height - 2){
+
 		//Clear footer
 		clearLine(width, 0, height, NORMAL_ATTRIBUTES);
+
 		//Clear header
 		clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
-		current_cursor = moveCursor(0, 4, -1, -1);
-		current_cursor = moveCursor(0, -5, -1, -1);
+
+		// Move cursor down to scroll then back up for typing
+		current_cursor = moveCursor(0, 3, -1, -1);
+		current_cursor = moveCursor(0, -4, -1, -1);
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, PROMPT_ATTRIBUTES);
@@ -224,11 +228,11 @@ static int does_file_exist(wchar_t *command){
 * Return: Line that the user inputted
 */
 static wchar_t **readline(int *num_words) {
-	wchar_t **line_array;
-	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds a word
+	wchar_t **line_array; //the completed line split into an array
+	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds each space seperated word
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
-	wint_t wcs_buffer = malloc(sizeof(wchar_t)); //buffers each character typed
 	wchar_t backspace_buffer = malloc(sizeof(wchar_t)); //buffers the character removed by the backspace
+	wint_t wcs_buffer = malloc(sizeof(wchar_t)); //buffers each character typed
 	DWORD num_read;
 	DWORD backspace_read;
 	COORD cursor_loc;
@@ -248,12 +252,11 @@ static wchar_t **readline(int *num_words) {
 	wchar_t intstr[3];
 
 	do {
-		FlushConsoleInputBuffer(CONSOLE_INPUT);
-		wcs_buffer = getwchar();
-
+		wcs_buffer = getch(); //this is non standard but all modern windows compilers should have it and it's the only way I've found to fix the double enter issue which happens with getwchar
 		switch (wcs_buffer){
 
-		case 13:
+		case L'\r':
+			wprintf(L"\nreturn\n");
 			if (k != 0){
 				listening = 0;
 			}
@@ -348,7 +351,7 @@ static wchar_t **readline(int *num_words) {
 			}
 			break;
 		}
-	} while (listening);
+	} while (listening && k < MAX_LINE - 1);
 
 
 	FlushConsoleInputBuffer(CONSOLE_INPUT);
@@ -488,7 +491,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	CONSOLE_INPUT = GetStdHandle(STD_INPUT_HANDLE);
 	ConsoleWindow = GetConsoleWindow();
 	SetConsoleTitle(L"Tortuga");
-	SetConsoleMode(CONSOLE_INPUT, (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS));
+	SetConsoleMode(CONSOLE_INPUT, (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_PROCESSED_INPUT));
 
 	// Style stuff
 	CONSOLE_TRANSPARENCY = 240;
