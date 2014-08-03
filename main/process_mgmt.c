@@ -223,10 +223,10 @@ wchar_t *get_argv(wchar_t *params, wchar_t *command){
 * Return: Error code, 0 if success, 50 if encountered a redirection error
 */
 int create_process(command_line *line) {
-	wchar_t *process_command;
-	wchar_t *process_params;
-	wchar_t *process_command_ext;
-	wchar_t *process_params_ext;
+	wchar_t *process_command = NULL;
+	wchar_t *process_params = NULL;
+	wchar_t *process_command_ext = NULL;
+	wchar_t *process_params_ext = NULL;
 	wchar_t  *path_commands = get_commands_dir(); // PATH/commands/
 	wchar_t  *system_dir = get_system_dir(); // /bin in linux, C:/windows/system32 in windows
 	wchar_t  *dirs[NUM_DIRS] = { path_commands, system_dir, L"./" };

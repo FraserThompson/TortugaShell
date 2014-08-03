@@ -85,7 +85,7 @@ void parse(wchar_t **cmdline, int num_words) {
 	}
 	line->params = wcscmp(line->params, L"") != 0 ? line->params : NULL; //Set params to NULL if empty
 
-	if (debug_global) wprintf(L"PARSE: Sending the following to create_process for execution:\n", line->command);
+	if (debug_global) wprintf(L"PARSE: Sending the following to create_process for execution: %s\n", line->command);
 	if (debug_global) display_info(line);
 
 	error = create_process(line);

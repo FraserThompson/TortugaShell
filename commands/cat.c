@@ -25,18 +25,21 @@ int main(int argc, char *argv[]){
 		}
 		i++;
 	}
-	
-	if ((fp = fopen(argv[1], "r")) != NULL){
-		char line[256];
-		while (fgets(line, 256, fp)){
-			fputs(line, stdout);
+
+	if (argv[1]){
+		if ((fp = fopen(argv[1], "r")) != NULL){
+			char line[256];
+			while (fgets(line, 256, fp)){
+				fputs(line, stdout);
+			}
+			fclose(fp);
+			return EXIT_SUCCESS; //this is 0
 		}
-		fclose(fp);
-		exit(1);
+		else
+		{
+			printf("CAT: Error opening file.\n");
+		}
 	}
-	else
-	{
-		printf("CAT: Error opening file.\n");
-		exit(1);
-	}
+
+	return EXIT_FAILURE; //this is 1
 }

@@ -333,7 +333,7 @@ static wchar_t **readline(int *num_words) {
 	COORD cursor_orig = getCursor();
 	int listening = 1;
 	int count;
-	int end_of_line;
+	int end_of_line = 0;
 	int width = getConsoleWidth();
 	int bottom = getConsoleBottom();
 	int k = 0; //number of charactres in line array

@@ -21,7 +21,7 @@ wchar_t *getCWD(){
 	wchar_t cwd[BUFSIZE];
 
 	if (!GetCurrentDirectoryW(BUFSIZE, cwd)) {
-		fwprintf(stderr, L"CWD: Fatal error getting current directory! %s\n", GetLastError());
+		fwprintf(stderr, L"CWD: Fatal error getting current directory! %d\n", GetLastError());
 		exit(EXIT_FAILURE);
 	}
 

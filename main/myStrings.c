@@ -94,7 +94,7 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 * Return: Wchar version of input
 */
 wchar_t *convert_to_wchar(char *input){
-	if (debug_global > 1) { wprintf(L"CONVERT_TO_WCHAR: Input - %s\n", input); }
+	if (debug_global > 1) { printf("CONVERT_TO_WCHAR: Input - %s\n", input); }
 
 	size_t len = strlen(input) + 1;
 	wchar_t *command_w = emalloc(sizeof(wchar_t)* len);
@@ -116,6 +116,6 @@ char *convert_to_char(wchar_t *input){
 	char *command_c = emalloc(sizeof(char)* len);
 
 	wcstombs(command_c, input, len);
-	if (debug_global > 1){ wprintf(L"CONVERT_TO_CHAR: Output - %s\n", command_c); }
+	if (debug_global > 1){ printf("CONVERT_TO_CHAR: Output - %s\n", command_c); }
 	return command_c;
 }
