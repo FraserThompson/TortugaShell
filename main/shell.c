@@ -28,7 +28,60 @@ int CONSOLE_TRANSPARENCY;
 WORD HEADER_FOOTER_ATTRIBUTES;
 WORD NORMAL_ATTRIBUTES;
 WORD PROMPT_ATTRIBUTES;
+WORD DIR_HIGHLIGHT_ATTRIBUTES;
+WORD FILE_HIGHLIGHT_ATTRIBUTES;
+int found = 0;
+
 node *command_tree;
+node *current_dir_tree;
+
+static node *tree_from_dir(wchar_t *dir){
+	node *newnode, *temp, *parent;
+	node *root = NULL;
+	wchar_t *result;
+	WIN32_FIND_DATA fdFile;
+	HANDLE hFind = NULL;
+	wchar_t *sDir = concat_string(dir, L"\\*.*", NULL);
+
+	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
+	{
+		fwprintf(stderr, L"\nTREE_FROM_DIR: No files found in sDir!", sDir);
+		return NULL;
+	}
+
+	do
+	{
+		{
+
+			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+			{
+				continue;
+			}
+			else {
+				newnode = init_node();
+
+				// Copy to command node
+				//newnode->title = _wcsdup(fdFile.cFileName);
+				newnode->title = concat_string(dir, L"\\", fdFile.cFileName);
+
+				//wprintf(L"Found command: %s\n", newnode->title);
+
+				// Blank description
+				newnode->description = NULL;
+
+				if (root == NULL){
+					root = newnode;
+				}
+				else {
+					bst_insert(root, newnode);
+				}
+			}
+		}
+	} while (FindNextFile(hFind, &fdFile));
+	FindClose(hFind);
+
+	return root;
+}
 
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
@@ -174,8 +227,6 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 		coords.Y = y;
 	}
 
-
-
 	// If no attributes are supplied then it's a darkish gray
 	if (attributes == NULL){
 		attributes = (FOREGROUND_INTENSITY);
@@ -276,23 +327,48 @@ static void drawPrompt(void) {
 */
 static int highlight_command(wchar_t *command, int wordchar_count){
 	COORD cursor_loc = getCursor();
-	WORD colours = FOREGROUND_GREEN;
 	DWORD num_read;
 	node *parent;
+	node *other_parent;
 	node *result = NULL;
+	node *other_result = NULL;
+	int exists;
+
+	if (current_dir_tree != NULL){
+		// Here we need to check for partial matches and display the rest of the string if we want to be rly cool
+		other_result = bst_search(current_dir_tree, command, &other_parent);
+	}
+
+	// Check to see if it's a known command
 	if (command_tree != NULL){
 		result = bst_search(command_tree, command, &parent);
 	}
 
-	if (does_file_exist(command)){
-		cursor_loc.X -= wordchar_count;
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count + 1, cursor_loc, &num_read);
-	}
-
+	// If it's known print the associated help message
 	if (result != NULL){
 		cursor_loc.X -= wordchar_count;
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, colours, wordchar_count + 1, cursor_loc, &num_read);
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, cursor_loc, &num_read);
 		printFooter(result->description);
+	}
+
+	// Check to see if it exists
+	exists = does_file_exist(command);
+
+	//file
+	if (exists == 1){
+		cursor_loc.X -= wordchar_count;
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, cursor_loc, &num_read);
+
+	}
+
+	//dir
+	if (exists == 2){
+		cursor_loc.X -= wordchar_count;
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, cursor_loc, &num_read);
+		if (!found){
+			current_dir_tree = tree_from_dir(command);
+			found = 1;
+		}
 	}
 
 
@@ -301,18 +377,26 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 /* -----WINDOWS----
 * Check to see if a file exists
-* Return: 1 if exists
+* Return: 1 if it's a file, 2 if it's a directory
 * Param: Path of file to check
 */
 static int does_file_exist(wchar_t *command){
 	WIN32_FIND_DATA FindFileData;
 	HANDLE handle = FindFirstFile(command, &FindFileData);
 	int found = handle != INVALID_HANDLE_VALUE;
+	int result = 0;
+
 	if (found)
 	{
+		result = 1;
+		if (FindFileData.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+		{
+			result = 2;
+		}
 		FindClose(handle);
 	}
-	return found;
+
+	return result;
 }
 
 
@@ -587,6 +671,8 @@ int wmain(int argc, wchar_t *argv[]) {
 	HEADER_FOOTER_ATTRIBUTES = (FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE);
 	NORMAL_ATTRIBUTES = (FOREGROUND_INTENSITY);
 	PROMPT_ATTRIBUTES = (FOREGROUND_RED);
+	DIR_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_GREEN);
+	FILE_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_BLUE | FOREGROUND_GREEN);
 
 	// Check for debug flag
 	while (argv[i]){
@@ -598,7 +684,6 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	// Build command BST from ./commands directory
 	command_tree = build_command_tree();
-
 
 	// Main loop
 	while (1) {
