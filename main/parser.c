@@ -43,7 +43,8 @@ void parse(wchar_t **cmdline, int num_words) {
 	if (wcscmp(line->command, L"cwd") == 0){
 		if (debug_global){ wprintf(L"PARSE: Got cwd.\n"); }
 		line->params = concat_string(line->params, L" ", getCWD());
-		line->command = L"echo";
+		free(line->command);
+		line->command = _wcsdup(L"echo");
 		line->type = 0;
 	}
 	else if (wcscmp(line->command, L"help") == 0){
