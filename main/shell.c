@@ -279,7 +279,10 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	WORD colours = FOREGROUND_GREEN;
 	DWORD num_read;
 	node *parent;
-	node *result = bst_search(command_tree, command, &parent);
+	node *result = NULL;
+	if (command_tree != NULL){
+		result = bst_search(command_tree, command, &parent);
+	}
 
 	if (does_file_exist(command)){
 		cursor_loc.X -= wordchar_count;
@@ -502,7 +505,7 @@ static node *build_command_tree(void){
 	// Now search ./commands/ 
 	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
 	{
-		wprintf(L"Path not found: [%s]\n", sDir);
+		fwprintf(stderr, L"\nBUILD_COMMAND_TREE: No ./commands/*.exe files found! Only builtin commands will be available.");
 		return NULL;
 	}
 
@@ -595,7 +598,7 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	// Build command BST from ./commands directory
 	command_tree = build_command_tree();
-	assert(command_tree != NULL);
+
 
 	// Main loop
 	while (1) {
