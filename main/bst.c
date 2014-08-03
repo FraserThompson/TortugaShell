@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <Windows.h>
 #include "bst.h"
+#include "shell.h"
 
 node *init_node()
 {
@@ -69,7 +70,7 @@ void inorder(node *temp)
 	if (temp != NULL)
 	{
 		inorder(temp->left);
-		wprintf(L"%s\n", temp->description);
+		wprintf(L"%s\n", temp->title);
 		inorder(temp->right);
 	}
 }
