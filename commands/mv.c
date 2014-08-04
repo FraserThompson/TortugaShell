@@ -36,23 +36,25 @@ int main(int argc, char *argv[]){
 		return EXIT_SUCCESS;
 	}
 	else{
-		fd1 = fopen(argv[1], "r");
-		if (!fd1){
-			fprintf(stderr, "MV: Input file '%s' does not exist.", argv[1]);
-			return EXIT_FAILURE;
-		}
-		fd2 = fopen(argv[2], "w+");
-		if (!fd2){
-			fprintf(stderr, "MV: Could not open output file '%s' for writing.\n", argv[2]);
-			return EXIT_FAILURE;
-		}
+		if (argv[1]){
+			fd1 = fopen(argv[1], "r");
+			if (!fd1){
+				fprintf(stderr, "MV: Input file '%s' does not exist.", argv[1]);
+				return EXIT_FAILURE;
+			}
+			fd2 = fopen(argv[2], "w+");
+			if (!fd2){
+				fprintf(stderr, "MV: Could not open output file '%s' for writing.\n", argv[2]);
+				return EXIT_FAILURE;
+			}
 
-		while (fgets(buf, sizeof(buf), fd1) != NULL){
-			fprintf(fd2, buf);
-		}
+			while (fgets(buf, sizeof(buf), fd1) != NULL){
+				fprintf(fd2, buf);
+			}
 
-		fclose(fd2);
-		fclose(fd1);
+			fclose(fd2);
+			fclose(fd1);
+		}
 	}
 	return EXIT_SUCCESS;
 }

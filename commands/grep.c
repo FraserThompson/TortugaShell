@@ -32,10 +32,11 @@ int main(int argc, char *argv[]){
 		i++;
 	}
 
-	f = fopen(argv[0],"r");
+	if (argv[0]){
+		f = fopen(argv[0], "r");
 
-	grep(argv[1], f, NULL);
-
+		grep(argv[1], f, NULL);
+	}
 }
 int grep(char *regexp, FILE *f, char *name)
 {

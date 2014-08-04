@@ -28,14 +28,15 @@ int main(int argc, char *argv[]){
 		i++;
 	}
 
-	status = remove(argv[1]);
+	if (argv[1]){
+		status = remove(argv[1]);
 
-	if (status == 0){
-		printf("RM: Success! File %s has been deleted\n", argv[1]);
+		if (status == 0){
+			printf("RM: Success! File %s has been deleted\n", argv[1]);
+		}
+		else
+		{
+			printf("RM: File delete failed. :(\n");
+		}
 	}
-	else
-	{
-		printf("RM: File delete failed. :(\n");
-
-	}		
 }
