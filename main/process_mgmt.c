@@ -246,7 +246,6 @@ int create_process(command_line *line) {
 
 	if (debug_global){ wprintf(L"\nCREATE_PROCESS: Parent process ID %u\n", GetCurrentProcessId()); }
 	if (debug_global) { wprintf(L"CREATE_PROCESS: Parent thread ID: %u\n", GetCurrentThreadId()); }
-	if (debug_global){ display_info(line); }
 
 	// Opening pipes
 	if (line->redirectOut){

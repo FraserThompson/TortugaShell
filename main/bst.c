@@ -65,6 +65,31 @@ node *bst_search(node *root, wchar_t *key, node **parent)
 	return NULL;
 }
 
+
+node *bst_partial_search(node *root, wchar_t *key, node **parent)
+{
+	node *temp;
+	temp = root;
+	int comparison;
+
+	while (temp != NULL)
+	{
+		comparison = wcscmp(temp->title, key);
+		if (comparison == 0 || wcswcs(temp->title, key) != NULL)
+		{
+			return temp;
+		}
+		*parent = temp;
+
+		if (comparison > 0)
+			temp = temp->left;
+		else
+			temp = temp->right;
+	}
+
+	return NULL;
+}
+
 void inorder(node *temp)
 {
 	if (temp != NULL)

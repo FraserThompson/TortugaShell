@@ -21,17 +21,17 @@
 #include "console.h"
 
 int debug_global = 1;
+int found = 0;
+int CONSOLE_TRANSPARENCY;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
-int CONSOLE_TRANSPARENCY;
 WORD HEADER_FOOTER_ATTRIBUTES;
 WORD NORMAL_ATTRIBUTES;
 WORD PROMPT_ATTRIBUTES;
 WORD DIR_HIGHLIGHT_ATTRIBUTES;
 WORD FILE_HIGHLIGHT_ATTRIBUTES;
-int found = 0;
-
+WORD TAB_SUGGESTION_ATTRIBUTES;
 node *command_tree;
 node *current_dir_tree;
 
@@ -229,7 +229,7 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 
 	// If no attributes are supplied then it's a darkish gray
 	if (attributes == NULL){
-		attributes = (FOREGROUND_INTENSITY);
+		attributes = NORMAL_ATTRIBUTES;
 	}
 
 	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);
@@ -327,27 +327,43 @@ static void drawPrompt(void) {
 */
 static int highlight_command(wchar_t *command, int wordchar_count){
 	COORD cursor_loc = getCursor();
+	COORD word_begin = cursor_loc;
+	word_begin.X -= wordchar_count;
 	DWORD num_read;
 	node *parent;
 	node *other_parent;
 	node *result = NULL;
 	node *other_result = NULL;
+	DWORD written;
+	int width = getConsoleWidth();
 	int exists;
 
-	if (current_dir_tree != NULL){
-		// Here we need to check for partial matches and display the rest of the string if we want to be rly cool
-		other_result = bst_search(current_dir_tree, command, &other_parent);
+	if (command[wordchar_count - 1] == '\\'){
+		found = 0;
 	}
+
+	if (current_dir_tree != NULL){
+		other_result = bst_partial_search(current_dir_tree, command, &other_parent);
+		if (other_result){
+			advPrint(other_result->title, CONSOLE_OUTPUT, 1, cursor_loc.Y, TAB_SUGGESTION_ATTRIBUTES);
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count, word_begin, &num_read);
+		}
+		else {
+			FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, cursor_loc, &written);
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES, width - cursor_loc.X, cursor_loc, &written);
+		}
+	}
+
 
 	// Check to see if it's a known command
 	if (command_tree != NULL){
 		result = bst_search(command_tree, command, &parent);
 	}
 
+
 	// If it's known print the associated help message
 	if (result != NULL){
-		cursor_loc.X -= wordchar_count;
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, cursor_loc, &num_read);
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
 		printFooter(result->description);
 	}
 
@@ -356,15 +372,14 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 	//file
 	if (exists == 1){
-		cursor_loc.X -= wordchar_count;
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, cursor_loc, &num_read);
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
+		printFooter(L"Press enter to run it");
 
 	}
 
 	//dir
 	if (exists == 2){
-		cursor_loc.X -= wordchar_count;
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, cursor_loc, &num_read);
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
 		if (!found){
 			current_dir_tree = tree_from_dir(command);
 			found = 1;
@@ -459,7 +474,8 @@ static wchar_t **readline(int *num_words) {
 
 				cursor_loc.X -= 1;
 
-				WriteConsoleOutputCharacter(CONSOLE_OUTPUT, L" ", 1, cursor_loc, &backspace_read);
+				FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, cursor_loc, &backspace_read);
+				FillConsoleOutputAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES, width - cursor_loc.X, cursor_loc, &backspace_read);
 
 				if (debug_global) {
 					swprintf(intstr, 3, L"%d", k);
@@ -530,6 +546,7 @@ static wchar_t **readline(int *num_words) {
 	} while (listening && k < MAX_LINE - 1);
 
 	FlushConsoleInputBuffer(CONSOLE_INPUT);
+	found = 0;
 
 	// Add null termination
 	line_buffer[k] = L'\0';
@@ -671,8 +688,9 @@ int wmain(int argc, wchar_t *argv[]) {
 	HEADER_FOOTER_ATTRIBUTES = (FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE);
 	NORMAL_ATTRIBUTES = (FOREGROUND_INTENSITY);
 	PROMPT_ATTRIBUTES = (FOREGROUND_RED);
-	DIR_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_GREEN);
-	FILE_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_BLUE | FOREGROUND_GREEN);
+	DIR_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_GREEN | FOREGROUND_RED| FOREGROUND_INTENSITY);
+	FILE_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+	TAB_SUGGESTION_ATTRIBUTES = (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
 
 	// Check for debug flag
 	while (argv[i]){
