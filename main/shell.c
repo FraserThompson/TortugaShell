@@ -345,7 +345,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	if (current_dir_tree != NULL){
 		other_result = bst_partial_search(current_dir_tree, command, &other_parent);
 		if (other_result){
-			advPrint(other_result->title, CONSOLE_OUTPUT, 1, 1, TAB_SUGGESTION_ATTRIBUTES);
+			advPrint(other_result->title, CONSOLE_OUTPUT, 1, cursor_loc.Y, TAB_SUGGESTION_ATTRIBUTES);
 			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count, word_begin, &num_read);
 		}
 		else {
