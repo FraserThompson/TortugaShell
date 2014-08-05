@@ -32,6 +32,7 @@ WORD PROMPT_ATTRIBUTES;
 WORD DIR_HIGHLIGHT_ATTRIBUTES;
 WORD FILE_HIGHLIGHT_ATTRIBUTES;
 WORD TAB_SUGGESTION_ATTRIBUTES;
+wchar_t *TAB_SUGGESTION;
 node *command_tree;
 node *current_dir_tree;
 
@@ -45,37 +46,33 @@ static node *tree_from_dir(wchar_t *dir){
 
 	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
 	{
-		fwprintf(stderr, L"\nTREE_FROM_DIR: No files found in sDir!", sDir);
 		return NULL;
 	}
 
 	do
 	{
 		{
+			newnode = init_node();
+
+			// Copy to command node
+			//newnode->title = _wcsdup(fdFile.cFileName);
+			newnode->title = concat_string(dir, L"\\", fdFile.cFileName);
+			newnode->description = NULL;
 
 			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
 			{
-				continue;
+				newnode->type = 1;
+				newnode->title = concat_string(newnode->title, L"\\", NULL);
+			}
+
+			//wprintf(L"Found command: %s\n", newnode->title);
+			if (root == NULL){
+				root = newnode;
 			}
 			else {
-				newnode = init_node();
-
-				// Copy to command node
-				//newnode->title = _wcsdup(fdFile.cFileName);
-				newnode->title = concat_string(dir, L"\\", fdFile.cFileName);
-
-				//wprintf(L"Found command: %s\n", newnode->title);
-
-				// Blank description
-				newnode->description = NULL;
-
-				if (root == NULL){
-					root = newnode;
-				}
-				else {
-					bst_insert(root, newnode);
-				}
+				bst_insert(root, newnode);
 			}
+			
 		}
 	} while (FindNextFile(hFind, &fdFile));
 	FindClose(hFind);
@@ -201,6 +198,32 @@ void free_command_line(command_line *line){
 	free(line);
 }
 
+
+/* -----WINDOWS----
+* Check to see if a file exists
+* Return: 1 if it's a file, 2 if it's a directory
+* Param: Path of file to check
+*/
+static int does_file_exist(wchar_t *command){
+	WIN32_FIND_DATA FindFileData;
+	HANDLE handle = FindFirstFile(command, &FindFileData);
+	int found = handle != INVALID_HANDLE_VALUE;
+	int result = 0;
+
+	if (found)
+	{
+		result = 1;
+		if (FindFileData.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+		{
+			result = 2;
+		}
+		FindClose(handle);
+	}
+
+	return result;
+}
+
+
 /* -----WINDOWS----
 * Prints a wchar string to a location in the CONSOLE_OUTPUT with a specific set of attributes
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT, x coord, y coord, attributes
@@ -320,6 +343,8 @@ static void drawPrompt(void) {
 	printFooter(L"Start typing to begin...");
 }
 
+int j = 5;
+
 /* -----WINDOWS----
 * Highlights known commands and prints usage tips
 * Return: 1 if match
@@ -337,6 +362,10 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	DWORD written;
 	int width = getConsoleWidth();
 	int exists;
+	int suggestionLen;
+
+	advPrint(command, CONSOLE_OUTPUT, 1, 4, TAB_SUGGESTION_ATTRIBUTES);
+	TAB_SUGGESTION = NULL;
 
 	if (command[wordchar_count - 1] == '\\'){
 		found = 0;
@@ -345,8 +374,16 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	if (current_dir_tree != NULL){
 		other_result = bst_partial_search(current_dir_tree, command, &other_parent);
 		if (other_result){
+			TAB_SUGGESTION = other_result->title;
+			suggestionLen = wcslen(other_result->title);
+
+			// Print and highlight the suggestion
 			advPrint(other_result->title, CONSOLE_OUTPUT, 1, cursor_loc.Y, TAB_SUGGESTION_ATTRIBUTES);
 			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count, word_begin, &num_read);
+
+			// Clear the rest of the line
+			word_begin.X += suggestionLen;
+			FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, word_begin, &written);
 		}
 		else {
 			FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, cursor_loc, &written);
@@ -354,12 +391,10 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 		}
 	}
 
-
 	// Check to see if it's a known command
 	if (command_tree != NULL){
 		result = bst_search(command_tree, command, &parent);
 	}
-
 
 	// If it's known print the associated help message
 	if (result != NULL){
@@ -379,41 +414,15 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 	//dir
 	if (exists == 2){
+		advPrint(L"FOUND", CONSOLE_OUTPUT, 1, j++, TAB_SUGGESTION_ATTRIBUTES);
 		FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
 		if (!found){
 			current_dir_tree = tree_from_dir(command);
 			found = 1;
 		}
 	}
-
-
 	return 1;
 }
-
-/* -----WINDOWS----
-* Check to see if a file exists
-* Return: 1 if it's a file, 2 if it's a directory
-* Param: Path of file to check
-*/
-static int does_file_exist(wchar_t *command){
-	WIN32_FIND_DATA FindFileData;
-	HANDLE handle = FindFirstFile(command, &FindFileData);
-	int found = handle != INVALID_HANDLE_VALUE;
-	int result = 0;
-
-	if (found)
-	{
-		result = 1;
-		if (FindFileData.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
-		{
-			result = 2;
-		}
-		FindClose(handle);
-	}
-
-	return result;
-}
-
 
 /* -----WINDOWS----
 * Prints a prompt, interprets user input.
@@ -445,8 +454,30 @@ static wchar_t **readline(int *num_words) {
 	wchar_t intstr[3];
 
 	do {
-		wcs_buffer = getch(); //this is non standard but all modern windows compilers should have it and it's the only way I've found to fix the double enter issue which happens with getwchar
+		wcs_buffer = getch(); //k so this is non standard but all modern windows compilers should have it and it's the only way I've found to fix the double enter issue which happens with getwchar
 		switch (wcs_buffer){
+
+		case L'\t':
+			if (TAB_SUGGESTION){
+				cursor_loc = getCursor();
+
+				// Copy all the relevant things to the places
+				wcscpy(line_buffer, TAB_SUGGESTION);
+				wcscpy(word_buffer, TAB_SUGGESTION);
+				k = wcslen(TAB_SUGGESTION);
+				wordchar_count = k;
+
+				// Print the suggestion and move cursor to the end
+				advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, DIR_HIGHLIGHT_ATTRIBUTES);
+				moveCursor(1 + k - cursor_loc.X, 0, -1, -1);
+
+				// Lazy stuff to get around an issue
+				word_buffer[--wordchar_count] = L'\0';
+				highlight_command(word_buffer, ++wordchar_count);
+				word_buffer[wordchar_count - 1] = L'\\';
+				found = 0;
+			}
+			break;
 
 		case L'\r':
 			if (k != 0){
@@ -645,6 +676,9 @@ static node *build_command_tree(void){
 				newnode->description = _wcsdup(line->output);
 
 				bst_insert(root, newnode);
+
+				free_command_line(line);
+				line = init_command_line(NULL, L"-h", NULL, NULL, L":var:", 1);
 			}
 		}
 	} while (FindNextFile(hFind, &fdFile));
@@ -654,7 +688,7 @@ static node *build_command_tree(void){
 
 	free(commandsDir);
 	free(sDir);
-	//free_command_line(line); //why doesn't this work?
+	free_command_line(line);
 
 	return root;
 }

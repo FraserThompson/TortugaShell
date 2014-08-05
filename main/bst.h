@@ -8,6 +8,7 @@ typedef struct bst
 {
 	wchar_t *title;
 	wchar_t *description;
+	int type;
 	struct bst *left, *right;
 }node;
 

@@ -10,6 +10,7 @@ node *init_node()
 	temp = (node *)emalloc(sizeof(node));
 	temp->left = NULL;
 	temp->right = NULL;
+	temp->type = 0;
 	return temp;
 }
 
