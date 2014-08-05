@@ -25,12 +25,13 @@ int main(int argc, char *argv[]){
 		}
 		i++;
 	}
+	if (argv[1]){
+		createdfile = fopen(argv[1], "w+");
 
-	createdfile = fopen(argv[1], "w+");
+		printf("TOUCH: File %s has been created.\n", argv[1]);
+		fclose(createdfile);
 
-	printf("TOUCH: File %s has been created.\n", argv[1]);
-	fclose(createdfile);
-
-	return 0;
+		return 0;
+	}
 
 }

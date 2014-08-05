@@ -15,7 +15,6 @@
 
 int wmain(int argc, wchar_t *argv[]){
 
-	wchar_t sPath[2048];
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
 	wchar_t *sDir = L".\\*.*";
