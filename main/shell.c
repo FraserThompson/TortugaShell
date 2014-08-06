@@ -452,8 +452,15 @@ static wchar_t **readline(int *num_words) {
 	wchar_t intstr[3];
 
 	do {
-		wcs_buffer = _getch();
+		wcs_buffer = _getwch(); //this is worse than getwchar but gets around the stupid double enter bug
 		switch (wcs_buffer){
+		
+		// Discard arrows/escape
+		case 224:
+		case 0:
+			_getwch();
+		case 27:
+			break;
 
 		case L'\t':
 			if (TAB_SUGGESTION){
