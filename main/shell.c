@@ -13,6 +13,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <assert.h>
+#include <conio.h>
 #include "process_mgmt.h"
 #include "parser.h"
 #include "myStrings.h"
@@ -37,9 +38,8 @@ node *command_tree;
 node *current_dir_tree;
 
 static node *tree_from_dir(wchar_t *dir){
-	node *newnode, *temp, *parent;
+	node *newnode;
 	node *root = NULL;
-	wchar_t *result;
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
 	wchar_t *sDir = concat_string(dir, L"\\*.*", NULL);
@@ -271,7 +271,6 @@ static void printHeader(wchar_t *content){
 	int len;
 	int center_x;
 	COORD topCoords;
-	DWORD written;
 
 	// Work out where to put stuff
 	len = wcslen(content);
@@ -295,7 +294,6 @@ static void printHeader(wchar_t *content){
 */
 static void printFooter(wchar_t *content){
 	COORD bottomCoords;
-	DWORD written;
 	CONSOLE_SCREEN_BUFFER_INFO screen_info;
 	int width = getConsoleWidth();
 
@@ -363,8 +361,6 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	int width = getConsoleWidth();
 	int exists;
 	int suggestionLen;
-
-	advPrint(command, CONSOLE_OUTPUT, 1, 4, TAB_SUGGESTION_ATTRIBUTES);
 	TAB_SUGGESTION = NULL;
 
 	if (command[wordchar_count - 1] == '\\'){
@@ -414,7 +410,6 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 	//dir
 	if (exists == 2){
-		advPrint(L"FOUND", CONSOLE_OUTPUT, 1, j++, TAB_SUGGESTION_ATTRIBUTES);
 		FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
 		if (!found){
 			current_dir_tree = tree_from_dir(command);
@@ -422,6 +417,12 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 		}
 	}
 	return 1;
+}
+
+int fgetch()
+{
+	int c = getc(stdin);
+	return c;
 }
 
 /* -----WINDOWS----
@@ -433,9 +434,8 @@ static wchar_t **readline(int *num_words) {
 	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds each space seperated word
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
 	wchar_t backspace_buffer = emalloc(sizeof(wchar_t)); //buffers the character removed by the backspace
-	backspace_buffer = NULL;
-	wint_t wcs_buffer = emalloc(sizeof(wchar_t)); //buffers each character typed
-	DWORD num_read;
+	backspace_buffer = 0;
+	wint_t wcs_buffer;
 	DWORD backspace_read;
 	COORD cursor_loc;
 	COORD cursor_orig = getCursor();
@@ -448,13 +448,11 @@ static wchar_t **readline(int *num_words) {
 	int word_count = 0; //number of words
 	int wordchar_count = 0; //number of characters in current word
 
-	DWORD cNumRead, fdwMode, i;
-	INPUT_RECORD irInBuf[128];
 	int counter = 0;
 	wchar_t intstr[3];
 
 	do {
-		wcs_buffer = getch(); //k so this is non standard but all modern windows compilers should have it and it's the only way I've found to fix the double enter issue which happens with getwchar
+		wcs_buffer = _getch();
 		switch (wcs_buffer){
 
 		case L'\t':
@@ -479,7 +477,8 @@ static wchar_t **readline(int *num_words) {
 			}
 			break;
 
-		case L'\r':
+		case 13:
+			FlushConsoleInputBuffer(CONSOLE_INPUT);
 			if (k != 0){
 				listening = 0;
 			}
@@ -604,7 +603,7 @@ static wchar_t **readline(int *num_words) {
 * Return: Root node of BST 
 */
 static node *build_command_tree(void){
-	node *newnode, *temp, *parent;
+	node *newnode, *temp;
 	node *root = NULL;
 	wchar_t *commandsDir = concat_string(PATH, L"\\commands", NULL);
 	wchar_t *sDir = concat_string(commandsDir, L"\\*.exe", NULL);
@@ -669,7 +668,7 @@ static node *build_command_tree(void){
 
 				if (error != 0) {
 					fwprintf(stderr, L"BUILD_COMMAND_TREE: Could not open.\n");
-					return;
+					return NULL;
 				}
 
 				// Copy help description

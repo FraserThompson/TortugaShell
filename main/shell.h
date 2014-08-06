@@ -29,7 +29,7 @@ extern node *command_tree;
 // Methods
 extern void *emalloc(size_t);
 extern void *erealloc(void *, size_t);
-extern wchar_t **readline(int);
+extern wchar_t **readline(int *);
 extern void advPrint(wchar_t *, HANDLE, int, int, WORD);
 extern void printHeader(wchar_t *);
 extern void printFooter(wchar_t *);
