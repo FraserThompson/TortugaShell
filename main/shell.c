@@ -341,7 +341,7 @@ static void drawPrompt(void) {
 	printHeader(top);
 	printFooter(L"Start typing to begin...");
 }
-int j = 3;
+
 /* -----WINDOWS----
 * Highlights known commands and prints usage tips
 * Return: 1 if match
@@ -497,8 +497,6 @@ static wchar_t **readline(int *num_words) {
 
 				if (wordchar_count != 0){
 					word_buffer[--wordchar_count] = L'\0';
-					advPrint(word_buffer, CONSOLE_OUTPUT, 0, j++, NULL);
-					advPrint(line_buffer, CONSOLE_OUTPUT, 4, j++, NULL);
 				}
 
 				// Moving cursor if we've wrapped around
