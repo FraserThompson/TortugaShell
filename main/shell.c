@@ -341,9 +341,7 @@ static void drawPrompt(void) {
 	printHeader(top);
 	printFooter(L"Start typing to begin...");
 }
-
-int j = 5;
-
+int j = 3;
 /* -----WINDOWS----
 * Highlights known commands and prints usage tips
 * Return: 1 if match
@@ -420,12 +418,6 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	return 1;
 }
 
-int fgetch()
-{
-	int c = getc(stdin);
-	return c;
-}
-
 /* -----WINDOWS----
 * Prints a prompt, interprets user input.
 * Return: Line that the user inputted
@@ -496,12 +488,17 @@ static wchar_t **readline(int *num_words) {
 			cursor_loc = getCursor();
 			// Only backspace if we're within the bounds
 			if (cursor_loc.X > 1 || cursor_loc.Y > cursor_orig.Y){
+				found = 0;
+				current_dir_tree = NULL;
+
 				end_of_line = cursor_loc.X == 0 ? 1 : 0;
 				backspace_buffer = line_buffer[k - 1];
-				line_buffer[k--] = L'\0';
+				line_buffer[--k] = L'\0';
 
 				if (wordchar_count != 0){
-					word_buffer[wordchar_count--] = L'\0';
+					word_buffer[--wordchar_count] = L'\0';
+					advPrint(word_buffer, CONSOLE_OUTPUT, 0, j++, NULL);
+					advPrint(line_buffer, CONSOLE_OUTPUT, 4, j++, NULL);
 				}
 
 				// Moving cursor if we've wrapped around
@@ -509,9 +506,9 @@ static wchar_t **readline(int *num_words) {
 					cursor_loc.X = width;
 					cursor_loc.Y -= 1;
 				}
-
 				cursor_loc.X -= 1;
 
+				// Printing spaces over text you want to backspace
 				FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, cursor_loc, &backspace_read);
 				FillConsoleOutputAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES, width - cursor_loc.X, cursor_loc, &backspace_read);
 
@@ -528,6 +525,7 @@ static wchar_t **readline(int *num_words) {
 						advPrint(intstr, CONSOLE_OUTPUT, 0, 0, NULL);
 					}
 				}
+
 			}
 			else {
 				cursor_loc = moveCursor(1, 0, -1, -1);
@@ -563,7 +561,6 @@ static wchar_t **readline(int *num_words) {
 		default:
 			line_buffer[k++] = wcs_buffer;
 			word_buffer[wordchar_count++] = wcs_buffer;
-
 			putwchar(wcs_buffer);
 
 			if (word_count == 0){
