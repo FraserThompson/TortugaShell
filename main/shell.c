@@ -52,10 +52,12 @@ static node *tree_from_dir(wchar_t *dir){
 	do
 	{
 		{
+			if (wcscmp(fdFile.cFileName, L".") == 0 || wcscmp(fdFile.cFileName, L"..") == 0){
+				continue;
+			}
 			newnode = init_node();
 
 			// Copy to command node
-			//newnode->title = _wcsdup(fdFile.cFileName);
 			newnode->title = concat_string(dir, L"\\", fdFile.cFileName);
 			newnode->description = NULL;
 
@@ -65,7 +67,6 @@ static node *tree_from_dir(wchar_t *dir){
 				newnode->title = concat_string(newnode->title, L"\\", NULL);
 			}
 
-			//wprintf(L"Found command: %s\n", newnode->title);
 			if (root == NULL){
 				root = newnode;
 			}
@@ -452,7 +453,7 @@ static wchar_t **readline(int *num_words) {
 	wchar_t intstr[3];
 
 	do {
-		wcs_buffer = _getwch(); //this is worse than getwchar but gets around the stupid double enter bug
+		wcs_buffer = _getwch(); //this is worse than getwchar() but gets around the stupid double enter bug
 		switch (wcs_buffer){
 		
 		// Discard arrows/escape
