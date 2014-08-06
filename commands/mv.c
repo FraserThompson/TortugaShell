@@ -3,8 +3,6 @@
 * Created 12/07/14
 * Author LeYing Tran
 */
-
-
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +18,6 @@ int main(int argc, char *argv[]){
 	FILE *fd2 = NULL;
 	int count = 0;
 	char buf[512];
-
 
 	//Help message, printed by default if no arguments
 	while (argv[i]){
@@ -44,6 +41,7 @@ int main(int argc, char *argv[]){
 			}
 			fd2 = fopen(argv[2], "w+");
 			if (!fd2){
+				perror("Error: ");
 				fprintf(stderr, "MV: Could not open output file '%s' for writing.\n", argv[2]);
 				return EXIT_FAILURE;
 			}
