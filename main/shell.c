@@ -8,6 +8,7 @@
 #define MAX_LINE 300
 #define MAX_WORD 64
 #define NUM_COMMANDS 3
+#define NUM_ATTRIBUTES 6
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,12 +28,14 @@ int CONSOLE_TRANSPARENCY;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
-WORD HEADER_FOOTER_ATTRIBUTES;
-WORD NORMAL_ATTRIBUTES;
-WORD PROMPT_ATTRIBUTES;
-WORD DIR_HIGHLIGHT_ATTRIBUTES;
-WORD FILE_HIGHLIGHT_ATTRIBUTES;
-WORD TAB_SUGGESTION_ATTRIBUTES;
+int HEADER_FOOTER_ATTRIBUTES;
+int NORMAL_ATTRIBUTES;
+int PROMPT_ATTRIBUTES;
+int DIR_HIGHLIGHT_ATTRIBUTES;
+int FILE_HIGHLIGHT_ATTRIBUTES;
+int TAB_SUGGESTION_ATTRIBUTES;
+WORD POSSIBLE_ATTRIBUTES[NUM_ATTRIBUTES] = { (FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE), (FOREGROUND_INTENSITY), (FOREGROUND_RED), (FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY),
+(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED) };
 wchar_t *TAB_SUGGESTION; //contains the complete tab suggestion
 node *command_tree; //contains the tree of ./commands
 node *current_dir_tree; //contains the tree of the current directory the user is typing
@@ -179,10 +182,6 @@ static int does_file_exist(wchar_t *command){
 	}
 
 	return result;
-}
-
-static int settings_box(){
-
 }
 
 /* -----WINDOWS----
@@ -345,14 +344,14 @@ static void printHeader(wchar_t *content){
 	topCoords.Y = getConsoleTop();
 	topCoords.X = 0;
 
-	clearLine(width, topCoords.X, topCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+	clearLine(width, topCoords.X, topCoords.Y, POSSIBLE_ATTRIBUTES[HEADER_FOOTER_ATTRIBUTES]);
 
 	// Print the text
 	if (content != NULL){
-		advPrint(content, CONSOLE_OUTPUT, center_x, topCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+		advPrint(content, CONSOLE_OUTPUT, center_x, topCoords.Y, POSSIBLE_ATTRIBUTES[HEADER_FOOTER_ATTRIBUTES]);
 	}
 
-	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
+	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 }
 
 /* -----WINDOWS----
@@ -369,15 +368,146 @@ static void printFooter(wchar_t *content){
 	bottomCoords.X = 0;
 	bottomCoords.Y = getConsoleBottom() - 2;
 
-	clearLine(width, bottomCoords.X, bottomCoords.Y, NORMAL_ATTRIBUTES);
+	clearLine(width, bottomCoords.X, bottomCoords.Y, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 	// Print the text
 	if (content != NULL){
-		advPrint(content, CONSOLE_OUTPUT, 0, bottomCoords.Y, HEADER_FOOTER_ATTRIBUTES);
+		advPrint(content, CONSOLE_OUTPUT, 0, bottomCoords.Y, POSSIBLE_ATTRIBUTES[HEADER_FOOTER_ATTRIBUTES]);
 	}
 
-	SetConsoleTextAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES);
+	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 }
+
+COORD draw_a_box(COORD current_cursor, WORD border_attributes, wchar_t *title, int height, int width, int speed){
+	int i = 0;
+	int title_len = wcslen(title);
+	int center = width / 2 - title_len / 2;
+
+	// Drawing perimeter
+	advPrint(L"|", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
+	for (i = 0; i < height; i++){
+		Sleep(speed);
+		current_cursor = moveCursor(0, 1, -1, -1);
+		advPrint(L"|", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
+	}
+	for (i = 0; i < width; i++){
+		Sleep(speed);
+		current_cursor = moveCursor(1, 0, -1, -1);
+		advPrint(L"=", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
+	}
+	advPrint(L"|", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
+	for (i = 0; i < height; i++){
+		Sleep(speed);
+		current_cursor = moveCursor(0, -1, -1, -1);
+		advPrint(L"|", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
+	}
+	for (i = 1; i < width; i++){
+		Sleep(speed);
+		current_cursor = moveCursor(-1, 0, -1, -1);
+		advPrint(L"=", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
+	}
+	//header
+	advPrint(title, CONSOLE_OUTPUT, center, current_cursor.Y, border_attributes);
+	current_cursor = moveCursor(0, 1, -1, -1);
+	return current_cursor;
+}
+
+COORD draw_options(wchar_t **options, int *attributes, int num_options, int width, COORD current_cursor){
+	int i = 0;
+	int option_len = 0;
+	int option_center = 0;
+
+	// Drawing options
+	for (i = 0; i < num_options; i++){
+		option_len = wcslen(options[i]);
+		option_center = width / 2 - option_len / 2;
+		current_cursor = moveCursor(0, 1, -1, -1);
+		advPrint(options[i], CONSOLE_OUTPUT, option_center, current_cursor.Y, POSSIBLE_ATTRIBUTES[attributes[i]]);
+	}
+
+	return current_cursor;
+}
+
+int drawSettings(){
+	COORD current_cursor = getCursor();
+	COORD options_cursor = { 1, 1 };
+	COORD original_cursor = current_cursor;
+	WORD border_attributes = FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+	WORD option_attributes = FOREGROUND_INTENSITY | BACKGROUND_BLUE;
+	WORD select_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED;
+	wchar_t *styles_header = L"STYLES";
+	wchar_t *options[6] = { L"HEADER FOOTER", L"NORMAL", L"PROMPT", L"DIR HIGHLIGHT", L"FILE HIGHLIGHT", L"TAB SUGGESTION" };
+	int attributes[6] = { HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES };
+
+	wint_t input;
+	wint_t secondInput;
+
+	int i = 0;
+	int speed = 5;
+	int height = 10;
+	int width = 30;
+	int num_read;
+
+	current_cursor = draw_a_box(current_cursor, border_attributes, L"STYLES", height, width, speed);
+	options_cursor = current_cursor;
+	current_cursor = draw_options(options, attributes, 6, width, current_cursor);
+	current_cursor = moveCursor(0, -5, -1, -1);
+
+	while (1){
+		// Draw the selection cursors;
+		advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+		advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+		input = _getch();
+		switch (input){
+		case 224:
+		case 0:
+			secondInput = _getch();
+			// Down
+			if (secondInput == 80){
+				if (i < 5){
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					current_cursor = moveCursor(0, 1, -1, -1);
+					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					i++;
+				}
+			}
+			// Up
+			else if (secondInput == 72){
+				if (i > 0){
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					current_cursor = moveCursor(0, -1, -1, -1);
+					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					i--;
+
+				}
+			}
+			// Left
+			else if (secondInput == 75){
+				if (NORMAL_ATTRIBUTES > 0) NORMAL_ATTRIBUTES--;
+				attributes[1] = NORMAL_ATTRIBUTES;
+				original_cursor = getCursor();
+				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y);
+				current_cursor = draw_options(options, attributes, 6, width, current_cursor);
+				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y);
+			}
+			// Right
+			else if (secondInput == 77){
+				if (NORMAL_ATTRIBUTES < 5) NORMAL_ATTRIBUTES++;
+				attributes[1] = NORMAL_ATTRIBUTES;
+				original_cursor = getCursor();
+				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y);
+				current_cursor = draw_options(options, attributes, 6, width, current_cursor);
+				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y);
+			}
+			break;
+		}
+	}
+}
+
 
 /* -----WINDOWS----
 * Draws a prompt at the top containing the cwd
@@ -392,17 +522,17 @@ static void drawPrompt(void) {
 	if (current_cursor.Y >= height - 2){
 
 		//Clear footer
-		clearLine(width, 0, height, NORMAL_ATTRIBUTES);
+		clearLine(width, 0, height, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 		//Clear header
-		clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
+		clearLine(width, 0, 0, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 		// Move cursor down to scroll then back up for typing
 		current_cursor = moveCursor(0, 3, -1, -1);
 		current_cursor = moveCursor(0, -4, -1, -1);
 	}
 
-	SetConsoleTextAttribute(CONSOLE_OUTPUT, PROMPT_ATTRIBUTES);
+	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[PROMPT_ATTRIBUTES]);
 	wprintf(L"\n>");
 	printHeader(top);
 	printFooter(L"Start typing to begin...");
@@ -444,8 +574,8 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 			suggestionLen = wcslen(other_result->title);
 
 			// Print and highlight the suggestion
-			advPrint(other_result->title, CONSOLE_OUTPUT, word_begin.X, cursor_loc.Y, TAB_SUGGESTION_ATTRIBUTES);
-			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count, word_begin, &num_read);
+			advPrint(other_result->title, CONSOLE_OUTPUT, word_begin.X, cursor_loc.Y, POSSIBLE_ATTRIBUTES[TAB_SUGGESTION_ATTRIBUTES]);
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[DIR_HIGHLIGHT_ATTRIBUTES], wordchar_count, word_begin, &num_read);
 
 			// Clear the rest of the line
 			word_begin.X += suggestionLen;
@@ -453,7 +583,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 		}
 		else {
 			FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, cursor_loc, &written);
-			FillConsoleOutputAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES, width - cursor_loc.X, cursor_loc, &written);
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES], width - cursor_loc.X, cursor_loc, &written);
 		}
 	}
 
@@ -464,7 +594,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 	// If it's known print the associated help message and return the command value
 	if (result != NULL){
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
+		FillConsoleOutputAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[FILE_HIGHLIGHT_ATTRIBUTES], wordchar_count + 1, word_begin, &num_read);
 		printFooter(result->description);
 		returnValue = result->type;
 	}
@@ -474,14 +604,14 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 
 		//file
 		if (exists == 1){
-			FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[FILE_HIGHLIGHT_ATTRIBUTES], wordchar_count + 1, word_begin, &num_read);
 			printFooter(L"Press enter to run it");
 
 		}
 
 		//dir
 		if (exists == 2){
-			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[DIR_HIGHLIGHT_ATTRIBUTES], wordchar_count + 1, word_begin, &num_read);
 			if (!found){
 				current_dir_tree = tree_from_dir(command);
 				found = 1;
@@ -540,7 +670,7 @@ static wchar_t **readline(int *num_words) {
 				wordchar_count = k;
 
 				// Print the suggestion and move cursor to the end
-				advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, DIR_HIGHLIGHT_ATTRIBUTES);
+				advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, POSSIBLE_ATTRIBUTES[DIR_HIGHLIGHT_ATTRIBUTES]);
 				moveCursor(1 + k - cursor_loc.X, 0, -1, -1);
 
 				// Lazy stuff to get around an issue
@@ -586,7 +716,7 @@ static wchar_t **readline(int *num_words) {
 
 				// Printing spaces over text you want to backspace
 				FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width - cursor_loc.X, cursor_loc, &backspace_read);
-				FillConsoleOutputAttribute(CONSOLE_OUTPUT, NORMAL_ATTRIBUTES, width - cursor_loc.X, cursor_loc, &backspace_read);
+				FillConsoleOutputAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES], width - cursor_loc.X, cursor_loc, &backspace_read);
 
 				if (debug_global) {
 					swprintf(intstr, 3, L"%d", k);
@@ -616,7 +746,7 @@ static wchar_t **readline(int *num_words) {
 
 			// Blank any possible usage tips
 			if (word_count == 0){
-				clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
+				clearLine(width * 3, 0, bottom - 2, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 			}
 			break;
 
@@ -641,7 +771,7 @@ static wchar_t **readline(int *num_words) {
 
 			if (1){
 				// Blank any possible usage tips
-				clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
+				clearLine(width * 3, 0, bottom - 2, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 				// Check to see if the command is recognized
 				word_buffer[wordchar_count] = L'\0';
@@ -662,8 +792,8 @@ static wchar_t **readline(int *num_words) {
 	line_buffer[k] = L'\0';
 
 	// Clear header/footer
-	clearLine(width, 0, 0, NORMAL_ATTRIBUTES);
-	clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
+	clearLine(width, 0, 0, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
+	clearLine(width * 3, 0, bottom - 2, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 	// Move cursor down a line
 	cursor_loc = moveCursor(0, 1, 0, -1);
@@ -708,12 +838,12 @@ int wmain(int argc, wchar_t *argv[]) {
 	CONSOLE_TRANSPARENCY = 240;
 	SetWindowLong(ConsoleWindow, GWL_EXSTYLE, GetWindowLong(ConsoleWindow, GWL_EXSTYLE) | WS_EX_LAYERED);
 	SetLayeredWindowAttributes(ConsoleWindow, 0, CONSOLE_TRANSPARENCY, LWA_ALPHA);
-	HEADER_FOOTER_ATTRIBUTES = (FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE);
-	NORMAL_ATTRIBUTES = (FOREGROUND_INTENSITY);
-	PROMPT_ATTRIBUTES = (FOREGROUND_RED);
-	DIR_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_GREEN | FOREGROUND_RED| FOREGROUND_INTENSITY);
-	FILE_HIGHLIGHT_ATTRIBUTES = (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-	TAB_SUGGESTION_ATTRIBUTES = (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
+	HEADER_FOOTER_ATTRIBUTES = 0;
+	NORMAL_ATTRIBUTES = 1;
+	PROMPT_ATTRIBUTES = 2;
+	DIR_HIGHLIGHT_ATTRIBUTES = 3;
+	FILE_HIGHLIGHT_ATTRIBUTES = 4;
+	TAB_SUGGESTION_ATTRIBUTES = 5;
 
 	// Check for debug flag
 	while (argv[i]){

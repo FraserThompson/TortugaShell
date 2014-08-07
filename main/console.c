@@ -101,7 +101,7 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 
 	// If no attributes are supplied then it's a darkish gray
 	if (attributes == NULL){
-		attributes = NORMAL_ATTRIBUTES;
+		attributes = POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES];
 	}
 
 	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);

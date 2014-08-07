@@ -55,6 +55,15 @@ void parse(wchar_t **cmdline, int num_words) {
 		free_command_line(line);
 		return;
 	}
+	else if (wcscmp(line->command, L"settings") == 0){
+		if (debug_global){ wprintf(L"PARSE: Got settings.\n"); }
+		/*line->params = get_help();
+		line->command = _wcsdup(L"echo");
+		line->type = 0;*/
+		drawSettings();
+		free_command_line(line);
+		return;
+	}
 
 	/* If there's more than one token */
 	if (last_index > 1){
