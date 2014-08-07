@@ -20,7 +20,7 @@
 /* -----WINDOWS----
 * Searches the ./commands directory and prints each filename, and then calls the file with -h to get the help.
 */
-wchar_t *print_help(void){
+void get_help(void){
 
 	// First add the hardcoded built in commands
 	wchar_t *built_in = L"\n\t----------BUILT IN COMMANDS----------\n\ncd\tChanges the current working directory.\n\tUsage: cd [directory]\ncwd\tPrints the current working directory.\n\tUsage: cwd\nhelp\tPrints this help message.\n\tUsage: help\n";
@@ -28,9 +28,6 @@ wchar_t *print_help(void){
 	// Then work on the binaries in the commands subdirectory
 	wchar_t *externcomm = L"\n\t----------EXTERNAL COMMANDS----------\n";
 
-	wchar_t *result = concat_string(built_in, externcomm, NULL);
-	wprintf(L"%s\n", result);
-
 	inorder(command_tree);
-	return result;
+	//wchar_t *result = concat_string(built_in, externcomm, extern_result);
 }

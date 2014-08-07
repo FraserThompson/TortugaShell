@@ -22,7 +22,7 @@
 #include "console.h"
 
 int debug_global = 1;
-int found = 0;
+int found = 0; // used as a flag for highlight_command to denote whether we need to build another directory bst
 int CONSOLE_TRANSPARENCY;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
@@ -33,53 +33,10 @@ WORD PROMPT_ATTRIBUTES;
 WORD DIR_HIGHLIGHT_ATTRIBUTES;
 WORD FILE_HIGHLIGHT_ATTRIBUTES;
 WORD TAB_SUGGESTION_ATTRIBUTES;
-wchar_t *TAB_SUGGESTION;
-node *command_tree;
-node *current_dir_tree;
+wchar_t *TAB_SUGGESTION; //contains the complete tab suggestion
+node *command_tree; //contains the tree of ./commands
+node *current_dir_tree; //contains the tree of the current directory the user is typing
 
-static node *tree_from_dir(wchar_t *dir){
-	node *newnode;
-	node *root = NULL;
-	WIN32_FIND_DATA fdFile;
-	HANDLE hFind = NULL;
-	wchar_t *sDir = concat_string(dir, L"\\*.*", NULL);
-
-	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
-	{
-		return NULL;
-	}
-
-	do
-	{
-		{
-			if (wcscmp(fdFile.cFileName, L".") == 0 || wcscmp(fdFile.cFileName, L"..") == 0){
-				continue;
-			}
-			newnode = init_node();
-
-			// Copy to command node
-			newnode->title = concat_string(dir, L"\\", fdFile.cFileName);
-			newnode->description = NULL;
-
-			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
-			{
-				newnode->type = 1;
-				newnode->title = concat_string(newnode->title, L"\\", NULL);
-			}
-
-			if (root == NULL){
-				root = newnode;
-			}
-			else {
-				bst_insert(root, newnode);
-			}
-			
-		}
-	} while (FindNextFile(hFind, &fdFile));
-	FindClose(hFind);
-
-	return root;
-}
 
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
@@ -224,44 +181,153 @@ static int does_file_exist(wchar_t *command){
 	return result;
 }
 
+static int settings_box(){
 
-/* -----WINDOWS----
-* Prints a wchar string to a location in the CONSOLE_OUTPUT with a specific set of attributes
-* Params: Wchar string to print, handle of CONSOLE_OUTPUT, x coord, y coord, attributes
-*/
-void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attributes){
-	COORD coords;
-	COORD oldCoords;
-	CONSOLE_SCREEN_BUFFER_INFO screen_info;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
-	oldCoords.X = screen_info.dwCursorPosition.X;
-	oldCoords.Y = screen_info.dwCursorPosition.Y;
-
-	// If x and y are -1 then we should just print at the current location
-	if (x == -1 || y == -1){
-		coords.X = oldCoords.X;
-		coords.Y = oldCoords.Y;
-	}
-	else if (y == 0){
-		coords.Y = getConsoleTop();
-		coords.X = x;
-	}
-	else {
-		coords.X = x;
-		coords.Y = y;
-	}
-
-	// If no attributes are supplied then it's a darkish gray
-	if (attributes == NULL){
-		attributes = NORMAL_ATTRIBUTES;
-	}
-
-	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);
-	SetConsoleTextAttribute(CONSOLE_OUTPUT, attributes);
-	wprintf(L"%s", content);
-	SetConsoleCursorPosition(CONSOLE_OUTPUT, oldCoords);
 }
 
+/* -----WINDOWS----
+* Builds a BST from a directory.
+* Param: Directory to build from (without trailing slash)
+* Return: Completed tree
+*/
+static node *tree_from_dir(wchar_t *dir){
+	node *newnode;
+	node *root = NULL;
+	WIN32_FIND_DATA fdFile;
+	HANDLE hFind = NULL;
+	wchar_t *sDir = concat_string(dir, L"\\*.*", NULL);
+
+	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
+	{
+		return NULL;
+	}
+
+	do
+	{
+		{
+			if (wcscmp(fdFile.cFileName, L".") == 0 || wcscmp(fdFile.cFileName, L"..") == 0){
+				continue;
+			}
+			newnode = init_node();
+
+			// Copy to command node
+			newnode->title = concat_string(dir, L"\\", fdFile.cFileName);
+			newnode->description = NULL;
+
+			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+			{
+				newnode->type = 1;
+				newnode->title = concat_string(newnode->title, L"\\", NULL);
+			}
+
+			if (root == NULL){
+				root = newnode;
+			}
+			else {
+				bst_insert(root, newnode);
+			}
+
+		}
+	} while (FindNextFile(hFind, &fdFile));
+	FindClose(hFind);
+
+	return root;
+}
+
+/* -----WINDOWS----
+* Scans the ./commands/ directory and makes a node containing the name of each exe and what it prints when called with -h.
+* Return: Root node of BST
+*/
+static node *build_command_tree(void){
+	node *newnode;
+	node *root = NULL;
+	wchar_t *commandsDir = concat_string(PATH, L"\\commands", NULL);
+	wchar_t *sDir = concat_string(commandsDir, L"\\*.exe", NULL);
+	wchar_t sPath[2048];
+	wchar_t *command_name;
+	WIN32_FIND_DATA fdFile;
+	HANDLE hFind = NULL;
+	command_line *line = init_command_line(NULL, L"-h", NULL, NULL, L":var:", 1);
+	int error = 0;
+	int debug_old = debug_global;
+	debug_global = 0;
+	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
+	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]\n", L"help\tPrints a list of possible commands.\n\tUsage: help\n", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]\n" };
+
+	// First add built in commands
+	for (int i = 0; i < NUM_COMMANDS; i++){
+		newnode = init_node();
+		newnode->title = _wcsdup(recognized_commands[i]);
+		newnode->description = _wcsdup(command_usage[i]);
+		newnode->type = 2;
+
+		if (root == NULL){
+			root = newnode;
+		}
+		else {
+			bst_insert(root, newnode);
+		}
+	}
+
+	// Now search ./commands/ 
+	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
+	{
+		fwprintf(stderr, L"\nBUILD_COMMAND_TREE: No ./commands/*.exe files found! Only builtin commands will be available.");
+		return NULL;
+	}
+
+	do
+	{
+		{
+			wsprintf(sPath, L"%s\\%s", commandsDir, fdFile.cFileName);
+
+			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
+			{
+				continue;
+			}
+			else {
+				newnode = init_node();
+
+				// Cut off command extension
+				command_name = fdFile.cFileName;
+				command_name[wcslen(fdFile.cFileName) - 4] = 0;
+
+				// Copy to command node
+				newnode->title = _wcsdup(command_name);
+				newnode->type = 1;
+
+				if (debug_global) wprintf(L"Found command: %s\n", newnode->title);
+
+				// Copy command to commandline struct for process calling
+				line->command = _wcsdup(sPath);
+
+				error = create_process(line);
+
+				if (error != 0) {
+					fwprintf(stderr, L"BUILD_COMMAND_TREE: Could not open.\n");
+					return NULL;
+				}
+
+				// Copy help description
+				newnode->description = _wcsdup(line->output);
+
+				bst_insert(root, newnode);
+
+				free_command_line(line);
+				line = init_command_line(NULL, L"-h", NULL, NULL, L":var:", 1);
+			}
+		}
+	} while (FindNextFile(hFind, &fdFile));
+	FindClose(hFind);
+
+	debug_global = debug_old;
+
+	free(commandsDir);
+	free(sDir);
+	free_command_line(line);
+
+	return root;
+}
 
 /* -----WINDOWS----
 * Clears a space at the top and prints the wchar content string in the middle of it.
@@ -348,18 +414,23 @@ static void drawPrompt(void) {
 * Param: Command to check, count of characters in that command
 */
 static int highlight_command(wchar_t *command, int wordchar_count){
-	COORD cursor_loc = getCursor();
-	COORD word_begin = cursor_loc;
+	COORD cursor_loc = getCursor(); //current cursor location
+	COORD word_begin = cursor_loc; //cursor location at the beginning of the word
 	word_begin.X -= wordchar_count;
-	DWORD num_read;
+
+	//bst stuff
 	node *parent;
 	node *other_parent;
 	node *result = NULL;
 	node *other_result = NULL;
+
+	DWORD num_read;
 	DWORD written;
+
 	int width = getConsoleWidth();
 	int exists;
 	int suggestionLen;
+	int returnValue = 0;
 	TAB_SUGGESTION = NULL;
 
 	if (command[wordchar_count - 1] == '\\'){
@@ -373,7 +444,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 			suggestionLen = wcslen(other_result->title);
 
 			// Print and highlight the suggestion
-			advPrint(other_result->title, CONSOLE_OUTPUT, 1, cursor_loc.Y, TAB_SUGGESTION_ATTRIBUTES);
+			advPrint(other_result->title, CONSOLE_OUTPUT, word_begin.X, cursor_loc.Y, TAB_SUGGESTION_ATTRIBUTES);
 			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count, word_begin, &num_read);
 
 			// Clear the rest of the line
@@ -391,31 +462,34 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 		result = bst_search(command_tree, command, &parent);
 	}
 
-	// If it's known print the associated help message
+	// If it's known print the associated help message and return the command value
 	if (result != NULL){
 		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
 		printFooter(result->description);
+		returnValue = result->type;
 	}
+	else {
+		// Check to see if it exists
+		exists = does_file_exist(command);
 
-	// Check to see if it exists
-	exists = does_file_exist(command);
+		//file
+		if (exists == 1){
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
+			printFooter(L"Press enter to run it");
 
-	//file
-	if (exists == 1){
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, FILE_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
-		printFooter(L"Press enter to run it");
+		}
 
-	}
-
-	//dir
-	if (exists == 2){
-		FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
-		if (!found){
-			current_dir_tree = tree_from_dir(command);
-			found = 1;
+		//dir
+		if (exists == 2){
+			FillConsoleOutputAttribute(CONSOLE_OUTPUT, DIR_HIGHLIGHT_ATTRIBUTES, wordchar_count + 1, word_begin, &num_read);
+			if (!found){
+				current_dir_tree = tree_from_dir(command);
+				found = 1;
+			}
 		}
 	}
-	return 1;
+
+	return returnValue;
 }
 
 /* -----WINDOWS----
@@ -427,22 +501,22 @@ static wchar_t **readline(int *num_words) {
 	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds each space seperated word
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
 	wchar_t backspace_buffer = emalloc(sizeof(wchar_t)); //buffers the character removed by the backspace
-	backspace_buffer = 0;
 	wint_t wcs_buffer;
 	DWORD backspace_read;
 	COORD cursor_loc;
-	COORD cursor_orig = getCursor();
-	int listening = 1;
+	COORD cursor_orig = getCursor(); //location of the cursor before anything has happened
 	int count;
 	int end_of_line = 0;
 	int width = getConsoleWidth();
 	int bottom = getConsoleBottom();
+	int listening = 1; //used to end the while loop
 	int k = 0; //number of charactres in line array
 	int word_count = 0; //number of words
 	int wordchar_count = 0; //number of characters in current word
-
-	int counter = 0;
+	int recognized_command = 0;
 	wchar_t intstr[3];
+	found = 0;
+	backspace_buffer = 0;
 
 	do {
 		wcs_buffer = _getwch(); //this is worse than getwchar() but gets around the stupid double enter bug
@@ -488,8 +562,12 @@ static wchar_t **readline(int *num_words) {
 			cursor_loc = getCursor();
 			// Only backspace if we're within the bounds
 			if (cursor_loc.X > 1 || cursor_loc.Y > cursor_orig.Y){
-				found = 0;
-				current_dir_tree = NULL;
+
+				if (current_dir_tree){
+					bst_free(current_dir_tree);
+					current_dir_tree = NULL;
+					found = 0;
+				}
 
 				end_of_line = cursor_loc.X == 0 ? 1 : 0;
 				backspace_buffer = line_buffer[k - 1];
@@ -561,13 +639,13 @@ static wchar_t **readline(int *num_words) {
 			word_buffer[wordchar_count++] = wcs_buffer;
 			putwchar(wcs_buffer);
 
-			if (word_count == 0){
+			if (1){
 				// Blank any possible usage tips
 				clearLine(width * 3, 0, bottom - 2, NORMAL_ATTRIBUTES);
 
 				// Check to see if the command is recognized
 				word_buffer[wordchar_count] = L'\0';
-				highlight_command(word_buffer, wordchar_count);
+				recognized_command = highlight_command(word_buffer, wordchar_count);
 			}
 
 			if (debug_global) {
@@ -579,7 +657,6 @@ static wchar_t **readline(int *num_words) {
 	} while (listening && k < MAX_LINE - 1);
 
 	FlushConsoleInputBuffer(CONSOLE_INPUT);
-	found = 0;
 
 	// Add null termination
 	line_buffer[k] = L'\0';
@@ -597,102 +674,12 @@ static wchar_t **readline(int *num_words) {
 
 	free(word_buffer);
 	free(line_buffer);
+	if (current_dir_tree){
+		bst_free(current_dir_tree);
+		current_dir_tree = NULL;
+	}
 
 	return line_array;
-}
-
-/* -----WINDOWS----
-* Scans the ./commands/ directory and makes a node containing the name of each exe and what it prints when called with -h. 
-* Return: Root node of BST 
-*/
-static node *build_command_tree(void){
-	node *newnode, *temp;
-	node *root = NULL;
-	wchar_t *commandsDir = concat_string(PATH, L"\\commands", NULL);
-	wchar_t *sDir = concat_string(commandsDir, L"\\*.exe", NULL);
-	wchar_t sPath[2048];
-	wchar_t *result;
-	wchar_t *command_name;
-	WIN32_FIND_DATA fdFile;
-	HANDLE hFind = NULL;
-	command_line *line = init_command_line(NULL, L"-h", NULL, NULL, L":var:", 1);
-	int error = 0;
-	int debug_old = debug_global;
-	debug_global = 0;
-	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
-	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]", L"help\tPrints a list of possible commands.\n\tUsage: help", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]" };
-
-	// First add built in commands
-	for (int i = 0; i < NUM_COMMANDS; i++){
-		newnode = init_node();
-		newnode->title = _wcsdup(recognized_commands[i]);
-		newnode->description = _wcsdup(command_usage[i]);
-
-		if (root == NULL){
-			root = newnode;
-		}
-		else {
-			bst_insert(root, newnode);
-		}
-	}
-
-	// Now search ./commands/ 
-	if ((hFind = FindFirstFile(sDir, &fdFile)) == INVALID_HANDLE_VALUE)
-	{
-		fwprintf(stderr, L"\nBUILD_COMMAND_TREE: No ./commands/*.exe files found! Only builtin commands will be available.");
-		return NULL;
-	}
-
-	do
-	{
-		{
-			wsprintf(sPath, L"%s\\%s", commandsDir, fdFile.cFileName);
-
-			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
-			{
-				continue;
-			}
-			else {
-				newnode = init_node();
-
-				// Cut off command extension
-				command_name = fdFile.cFileName;
-				command_name[wcslen(fdFile.cFileName) - 4] = 0;
-
-				// Copy to command node
-				newnode->title = _wcsdup(command_name);
-
-				if (debug_global) wprintf(L"Found command: %s\n", newnode->title);
-
-				// Copy command to commandline struct for process calling
-				line->command = _wcsdup(sPath);
-
-				error = create_process(line);
-
-				if (error != 0) {
-					fwprintf(stderr, L"BUILD_COMMAND_TREE: Could not open.\n");
-					return NULL;
-				}
-
-				// Copy help description
-				newnode->description = _wcsdup(line->output);
-
-				bst_insert(root, newnode);
-
-				free_command_line(line);
-				line = init_command_line(NULL, L"-h", NULL, NULL, L":var:", 1);
-			}
-		}
-	} while (FindNextFile(hFind, &fdFile));
-	FindClose(hFind);
-
-	debug_global = debug_old;
-
-	free(commandsDir);
-	free(sDir);
-	free_command_line(line);
-
-	return root;
 }
 
 /* 
@@ -743,12 +730,11 @@ int wmain(int argc, wchar_t *argv[]) {
 	while (1) {
 		drawPrompt();
 		line = readline(&num_words);
-		assert(num_words > 0);
 		parse(line, num_words);
 	}
 
 	free(PATH);
-	free(line);
+	//free_command_line(line);
 	bst_free(command_tree);
 
 	return EXIT_SUCCESS;

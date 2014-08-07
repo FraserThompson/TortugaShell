@@ -1,8 +1,10 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <Windows.h>
 #include "bst.h"
 #include "shell.h"
+#include "myStrings.h"
 
 node *init_node()
 {
@@ -96,7 +98,7 @@ void inorder(node *temp)
 	if (temp != NULL)
 	{
 		inorder(temp->left);
-		wprintf(L"%s\n", temp->title);
+		wprintf(L"%s", temp->description);
 		inorder(temp->right);
 	}
 }
@@ -106,12 +108,12 @@ void bst_free(node *temp)
 {
 	if (temp != NULL)
 	{
-		inorder(temp->left);
+		bst_free(temp->left);
 		free(temp->title);
 		free(temp->description);
-		inorder(temp->right);
+		bst_free(temp->right);
 	}
 	else {
-		wprintf(L"Empty tree!");
+		return;
 	}
 }

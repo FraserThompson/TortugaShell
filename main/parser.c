@@ -20,7 +20,6 @@
 #include "process_mgmt.h"
 #define BUFSIZE 4096
 
-
 /* -----CROSS PLATFORM----
 * Processes a commandline
 * Parameter: Line to process
@@ -49,7 +48,11 @@ void parse(wchar_t **cmdline, int num_words) {
 	}
 	else if (wcscmp(line->command, L"help") == 0){
 		if (debug_global){ wprintf(L"PARSE: Got help.\n"); }
-		print_help();
+		/*line->params = get_help();
+		line->command = _wcsdup(L"echo");
+		line->type = 0;*/
+		get_help();
+		free_command_line(line);
 		return;
 	}
 
@@ -60,6 +63,7 @@ void parse(wchar_t **cmdline, int num_words) {
 			if (debug_global){ wprintf(L"PARSE: Got cd, changing directory.\n"); }
 			cd(cmdline[1]);
 			if (debug_global){ wprintf(L"PARSE: Done with cd, returning.\n"); }
+			free_command_line(line);
 			return;
 		}
 
@@ -92,7 +96,7 @@ void parse(wchar_t **cmdline, int num_words) {
 	error = create_process(line);
 
 	if (error == 2 || error == 3){
-		fwprintf(stderr, L"PARSE: '%s' does not exist.\n", line->command);
+		fwprintf(stderr, L"PARSE: '%s' is not recognized as a path to a file or an internal/external command.\n", line->command);
 	}
 
 	if (error == 50){

@@ -20,12 +20,17 @@ int wmain(int argc, wchar_t *argv[]){
 	size_t first_len;
 	size_t second_len;
 	int i = 0;
+	int display_dirs = 1;
 
 	//Help message, printed with -h
 	while (argv[i]){
 		if ((wcscmp(argv[i], L"-help") == 0) || (wcscmp(argv[i], L"-h") == 0)) {
-			printf("ls\tLists the contents of a directory.\n\tUsage: ls [directory] [-h]");
+			printf("ls\tLists the contents of a directory. Use -d to exclude directories from being listed.\n\tUsage: ls [directory] [-h] [-d]\n");
 			return EXIT_SUCCESS;
+		}
+		else if ((wcscmp(argv[i], L"-d") == 0)){
+			display_dirs = 0;
+
 		}
 		i++;
 	}
@@ -51,12 +56,18 @@ int wmain(int argc, wchar_t *argv[]){
 		{
 			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
 			{
-				wprintf(L"*%s\n", fdFile.cFileName);
+				if (display_dirs){
+					wprintf(L"*%s", fdFile.cFileName);
+				}
+				else {
+					continue;
+				}
 			}
 			else {
-				wprintf(L"%s\n", fdFile.cFileName);
+				wprintf(L"%s", fdFile.cFileName);
 			}
 		}
+		wprintf(L"\n");
 	} while (FindNextFile(hFind, &fdFile));
 }
 	

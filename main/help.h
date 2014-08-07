@@ -4,6 +4,6 @@
 #ifndef HELP
 #define HELP
 
-extern wchar_t *print_help(void);
+extern void get_help(void);
 
 #endif

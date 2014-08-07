@@ -74,6 +74,43 @@ int getConsoleHeight(){
 }
 
 /* -----WINDOWS----
+* Prints a wchar string to a location in the CONSOLE_OUTPUT with a specific set of attributes
+* Params: Wchar string to print, handle of CONSOLE_OUTPUT, x coord, y coord, attributes
+*/
+void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attributes){
+	COORD coords;
+	COORD oldCoords;
+	CONSOLE_SCREEN_BUFFER_INFO screen_info;
+	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	oldCoords.X = screen_info.dwCursorPosition.X;
+	oldCoords.Y = screen_info.dwCursorPosition.Y;
+
+	// If x and y are -1 then we should just print at the current location
+	if (x == -1 || y == -1){
+		coords.X = oldCoords.X;
+		coords.Y = oldCoords.Y;
+	}
+	else if (y == 0){
+		coords.Y = getConsoleTop();
+		coords.X = x;
+	}
+	else {
+		coords.X = x;
+		coords.Y = y;
+	}
+
+	// If no attributes are supplied then it's a darkish gray
+	if (attributes == NULL){
+		attributes = NORMAL_ATTRIBUTES;
+	}
+
+	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);
+	SetConsoleTextAttribute(CONSOLE_OUTPUT, attributes);
+	wprintf(L"%s", content);
+	SetConsoleCursorPosition(CONSOLE_OUTPUT, oldCoords);
+}
+
+/* -----WINDOWS----
 * Moves the console cursor to a specified position relative to current
 * Params: num of rows/columns to move relative or absolute
 * Return: The new position
