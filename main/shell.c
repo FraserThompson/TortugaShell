@@ -7,7 +7,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define MAX_LINE 300
 #define MAX_WORD 64
-#define NUM_COMMANDS 3
+#define NUM_COMMANDS 4
 #define NUM_ATTRIBUTES 6
 #include <stdio.h>
 #include <stdlib.h>
@@ -250,8 +250,8 @@ static node *build_command_tree(void){
 	int error = 0;
 	int debug_old = debug_global;
 	debug_global = 0;
-	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd" };
-	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]\n", L"help\tPrints a list of possible commands.\n\tUsage: help\n", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]\n" };
+	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd", L"settings"};
+	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]\n", L"help\tPrints a list of possible commands.\n\tUsage: help\n", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]\n", L"settings\tDisplays a window which lets you adjust settings.\n\t\tUsage: settings\n" };
 
 	// First add built in commands
 	for (int i = 0; i < NUM_COMMANDS; i++){
@@ -378,9 +378,10 @@ static void printFooter(wchar_t *content){
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 }
 
-COORD draw_a_box(COORD current_cursor, WORD border_attributes, wchar_t *title, int height, int width, int speed){
+COORD draw_a_box(COORD current_cursor, WORD border_attributes, wchar_t *title, wchar_t *footer, int height, int width, int speed){
 	int i = 0;
 	int title_len = wcslen(title);
+	int footer_len = wcslen(footer);
 	int center = width / 2 - title_len / 2;
 
 	// Drawing perimeter
@@ -406,8 +407,14 @@ COORD draw_a_box(COORD current_cursor, WORD border_attributes, wchar_t *title, i
 		current_cursor = moveCursor(-1, 0, -1, -1);
 		advPrint(L"=", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, border_attributes);
 	}
+
 	//header
 	advPrint(title, CONSOLE_OUTPUT, center, current_cursor.Y, border_attributes);
+
+	//footer
+	center = width / 2 - footer_len / 2;
+	advPrint(footer, CONSOLE_OUTPUT, center, current_cursor.Y + height, border_attributes);
+
 	current_cursor = moveCursor(0, 1, -1, -1);
 	return current_cursor;
 }
@@ -416,6 +423,7 @@ COORD draw_options(wchar_t **options, int *attributes, int num_options, int widt
 	int i = 0;
 	int option_len = 0;
 	int option_center = 0;
+	WORD select_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED;
 
 	// Drawing options
 	for (i = 0; i < num_options; i++){
@@ -423,12 +431,14 @@ COORD draw_options(wchar_t **options, int *attributes, int num_options, int widt
 		option_center = width / 2 - option_len / 2;
 		current_cursor = moveCursor(0, 1, -1, -1);
 		advPrint(options[i], CONSOLE_OUTPUT, option_center, current_cursor.Y, POSSIBLE_ATTRIBUTES[attributes[i]]);
+		advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+		advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
 	}
 
 	return current_cursor;
 }
 
-int drawSettings(){
+int style_settings(){
 	COORD current_cursor = getCursor();
 	COORD options_cursor = { 1, 1 };
 	COORD original_cursor = current_cursor;
@@ -436,8 +446,9 @@ int drawSettings(){
 	WORD option_attributes = FOREGROUND_INTENSITY | BACKGROUND_BLUE;
 	WORD select_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED;
 	wchar_t *styles_header = L"STYLES";
-	wchar_t *options[6] = { L"HEADER FOOTER", L"NORMAL", L"PROMPT", L"DIR HIGHLIGHT", L"FILE HIGHLIGHT", L"TAB SUGGESTION" };
+	wchar_t *options[6] = { L"HEADER FOOTER", L"NORMAL", L"PROMPT", L"DIR HIGHLIGHT", L"FILE HIGHLIGHT", L"TAB SUGGESTION"};
 	int attributes[6] = { HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES };
+	FILE *style_f;
 
 	wint_t input;
 	wint_t secondInput;
@@ -447,16 +458,17 @@ int drawSettings(){
 	int height = 10;
 	int width = 30;
 	int num_read;
+	int listening = 1;
 
-	current_cursor = draw_a_box(current_cursor, border_attributes, L"STYLES", height, width, speed);
+	current_cursor = draw_a_box(current_cursor, border_attributes, L"STYLES", L"PRESS ENTER TO APPLY", height, width, speed);
 	options_cursor = current_cursor;
 	current_cursor = draw_options(options, attributes, 6, width, current_cursor);
 	current_cursor = moveCursor(0, -5, -1, -1);
 
-	while (1){
+	while (listening){
 		// Draw the selection cursors;
-		advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-		advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+		advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+		advPrint(L">", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
 		input = _getch();
 		switch (input){
 		case 224:
@@ -487,8 +499,32 @@ int drawSettings(){
 			}
 			// Left
 			else if (secondInput == 75){
-				if (NORMAL_ATTRIBUTES > 0) NORMAL_ATTRIBUTES--;
-				attributes[1] = NORMAL_ATTRIBUTES;
+				switch (i){
+				case 0:
+					if (HEADER_FOOTER_ATTRIBUTES > 0) HEADER_FOOTER_ATTRIBUTES--;
+					attributes[0] = HEADER_FOOTER_ATTRIBUTES;
+					break;
+				case 1:
+					if (NORMAL_ATTRIBUTES > 0) NORMAL_ATTRIBUTES--;
+					attributes[1] = NORMAL_ATTRIBUTES;
+					break;
+				case 2:
+					if (PROMPT_ATTRIBUTES > 0) PROMPT_ATTRIBUTES--;
+					attributes[2] = PROMPT_ATTRIBUTES;
+					break;
+				case 3:
+					if (DIR_HIGHLIGHT_ATTRIBUTES > 0) DIR_HIGHLIGHT_ATTRIBUTES--;
+					attributes[3] = DIR_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 4:
+					if (FILE_HIGHLIGHT_ATTRIBUTES > 0) FILE_HIGHLIGHT_ATTRIBUTES--;
+					attributes[4] = FILE_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 5:
+					if (TAB_SUGGESTION_ATTRIBUTES > 0) TAB_SUGGESTION_ATTRIBUTES--;
+					attributes[5] = TAB_SUGGESTION_ATTRIBUTES;
+					break;
+				}
 				original_cursor = getCursor();
 				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y);
 				current_cursor = draw_options(options, attributes, 6, width, current_cursor);
@@ -496,16 +532,50 @@ int drawSettings(){
 			}
 			// Right
 			else if (secondInput == 77){
-				if (NORMAL_ATTRIBUTES < 5) NORMAL_ATTRIBUTES++;
-				attributes[1] = NORMAL_ATTRIBUTES;
+				switch (i){
+				case 0:
+					if (HEADER_FOOTER_ATTRIBUTES < 5) HEADER_FOOTER_ATTRIBUTES++;
+					attributes[0] = HEADER_FOOTER_ATTRIBUTES;
+					break;
+				case 1:
+					if (NORMAL_ATTRIBUTES < 5) NORMAL_ATTRIBUTES++;
+					attributes[1] = NORMAL_ATTRIBUTES;
+					break;
+				case 2:
+					if (PROMPT_ATTRIBUTES < 5) PROMPT_ATTRIBUTES++;
+					attributes[2] = PROMPT_ATTRIBUTES;
+					break;
+				case 3:
+					if (DIR_HIGHLIGHT_ATTRIBUTES < 5) DIR_HIGHLIGHT_ATTRIBUTES++;
+					attributes[3] = DIR_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 4:
+					if (FILE_HIGHLIGHT_ATTRIBUTES < 5) FILE_HIGHLIGHT_ATTRIBUTES++;
+					attributes[4] = FILE_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 5:
+					if (TAB_SUGGESTION_ATTRIBUTES < 5) TAB_SUGGESTION_ATTRIBUTES++;
+					attributes[5] = TAB_SUGGESTION_ATTRIBUTES;
+					break;
+				}
 				original_cursor = getCursor();
 				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y);
 				current_cursor = draw_options(options, attributes, 6, width, current_cursor);
 				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y);
 			}
 			break;
+
+		case L'\r':
+			listening = 0;
+			break;
 		}
 	}
+
+	style_f = fopen("style.txt", "w");
+	fprintf(style_f, "%d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES);
+	fclose(style_f);
+	current_cursor = moveCursor(0, height, -1, -1);
+
 }
 
 
@@ -821,6 +891,8 @@ int wmain(int argc, wchar_t *argv[]) {
 	wchar_t *cwd = getCWD();
 	wchar_t **line;
 	HWND ConsoleWindow;
+	FILE *style_f;
+	char buff[11];
 
 	// Get the current working directory
 	size_t cwd_len = wcslen(getCWD()) + 1;
@@ -838,12 +910,22 @@ int wmain(int argc, wchar_t *argv[]) {
 	CONSOLE_TRANSPARENCY = 240;
 	SetWindowLong(ConsoleWindow, GWL_EXSTYLE, GetWindowLong(ConsoleWindow, GWL_EXSTYLE) | WS_EX_LAYERED);
 	SetLayeredWindowAttributes(ConsoleWindow, 0, CONSOLE_TRANSPARENCY, LWA_ALPHA);
-	HEADER_FOOTER_ATTRIBUTES = 0;
-	NORMAL_ATTRIBUTES = 1;
-	PROMPT_ATTRIBUTES = 2;
-	DIR_HIGHLIGHT_ATTRIBUTES = 3;
-	FILE_HIGHLIGHT_ATTRIBUTES = 4;
-	TAB_SUGGESTION_ATTRIBUTES = 5;
+	style_f = fopen("style.txt", "r");
+
+	if (NULL == style_f){
+		style_f = fopen("style.txt", "w");
+		fprintf(style_f, "%d %d %d %d %d %d", 0, 1, 2, 3, 4, 5);
+		HEADER_FOOTER_ATTRIBUTES = 0;
+		NORMAL_ATTRIBUTES = 1;
+		PROMPT_ATTRIBUTES = 2;
+		DIR_HIGHLIGHT_ATTRIBUTES = 3;
+		FILE_HIGHLIGHT_ATTRIBUTES = 4;
+		TAB_SUGGESTION_ATTRIBUTES = 5;
+	}
+	else {
+		fscanf(style_f, "%d %d %d %d %d %d", &HEADER_FOOTER_ATTRIBUTES, &NORMAL_ATTRIBUTES, &PROMPT_ATTRIBUTES, &DIR_HIGHLIGHT_ATTRIBUTES, &FILE_HIGHLIGHT_ATTRIBUTES, &TAB_SUGGESTION_ATTRIBUTES);
+	}
+	fclose(style_f);
 
 	// Check for debug flag
 	while (argv[i]){
@@ -864,7 +946,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	}
 
 	free(PATH);
-	//free_command_line(line);
+	free_command_line(line);
 	bst_free(command_tree);
 
 	return EXIT_SUCCESS;

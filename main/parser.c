@@ -60,7 +60,7 @@ void parse(wchar_t **cmdline, int num_words) {
 		/*line->params = get_help();
 		line->command = _wcsdup(L"echo");
 		line->type = 0;*/
-		drawSettings();
+		style_settings();
 		free_command_line(line);
 		return;
 	}
