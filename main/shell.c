@@ -123,7 +123,7 @@ command_line *init_command_line(wchar_t *command, wchar_t *params, wchar_t *pipe
 void free_word_array(wchar_t **cmdline, int last_index){
 	int i = 0;
 	if (debug_global > 1) wprintf(L"FREE_WORD_ARRAY: Freeing %i items...\n", last_index);
-	free(cmdline[i++]);
+	//free(cmdline[i++]);
 
 	while (i < last_index - 1){
 		free(cmdline[i]);
@@ -142,7 +142,7 @@ void free_command_line(command_line *line){
 	if (line->command){
 		free(line->command);
 	}
-	if (line->output){
+	if (line->output != NULL){
 		free(line->output);
 	}
 	if (line->params){
@@ -664,6 +664,7 @@ static void style_settings(){
 	fprintf(style_f, "%d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY);
 	fclose(style_f);
 	current_cursor = clear_a_box(current_cursor, height, width, offsetX, offsetY);
+	free(intstr);
 }
 
 
@@ -973,9 +974,10 @@ static wchar_t **readline(int *num_words) {
 */
 int wmain(int argc, wchar_t *argv[]) {
 	int i = 0;
+	int exit = 0;
 	int num_words;
 	wchar_t *cwd = getCWD();
-	wchar_t **line;
+	wchar_t **line = NULL;
 	HWND ConsoleWindow;
 	FILE *style_f;
 	char buff[11];
@@ -1023,14 +1025,14 @@ int wmain(int argc, wchar_t *argv[]) {
 	command_tree = build_command_tree();
 
 	// Main loop
-	while (1) {
+	while (!exit) {
 		drawPrompt();
 		line = readline(&num_words);
-		parse(line, num_words);
+		exit = parse(line, num_words);
+		free_word_array(line, num_words - 1);
 	}
 
 	free(PATH);
-	free_command_line(line);
 	bst_free(command_tree);
 
 	return EXIT_SUCCESS;

@@ -40,6 +40,14 @@ void clearLine(int width, int x, int y, WORD attributes){
 	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
 }
 
+void clearScreen(){
+	int height = getConsoleHeight();
+	int width = getConsoleWidth();
+	for (int i = 0; i < height; i++){
+		clearLine(width, 1, i, NORMAL_ATTRIBUTES);
+	}
+}
+
 /* -----WINDOWS----
 * Gets the current console cursor position
 * Return: Cursor position

@@ -5,7 +5,7 @@
 #define PARSER
 #include "shell.h" //for the command_line struct
 
-extern void parse(wchar_t **, int);
+extern int parse(wchar_t **, int);
 extern void display_info(command_line *);
 extern wchar_t  *get_system_dir(void);
 extern wchar_t  *get_commands_dir(void);

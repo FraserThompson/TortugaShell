@@ -16,6 +16,7 @@
 #include "help.h"
 #include "parser.h"
 #include "shell.h"
+#include "console.h"
 #include "myStrings.h"
 #include "process_mgmt.h"
 #define BUFSIZE 4096
@@ -24,7 +25,7 @@
 * Processes a commandline
 * Parameter: Line to process
 */
-void parse(wchar_t **cmdline, int num_words) {
+int parse(wchar_t **cmdline, int num_words) {
 	int last_index = num_words;
 	int i = 0;
 	int error;
@@ -53,17 +54,23 @@ void parse(wchar_t **cmdline, int num_words) {
 		line->type = 0;*/
 		get_help();
 		free_command_line(line);
-		return;
+		return 0;
 	}
 	else if (wcscmp(line->command, L"settings") == 0){
 		if (debug_global){ wprintf(L"PARSE: Got settings.\n"); }
 		int t = 1;
-		moveCursor(0, 5, -1, -1);
+		clearScreen();
 		while (t){
 			t = main_settings();
 		}
 		free_command_line(line);
-		return;
+		moveCursor(0, 0, 1, 0);
+		return 0;
+	}
+	else if (wcscmp(line->command, L"quit") == 0){
+		if (debug_global){ wprintf(L"PARSE: Got quit.\n"); }
+		free_command_line(line);
+		return 1;
 	}
 
 	/* If there's more than one token */
@@ -115,7 +122,7 @@ void parse(wchar_t **cmdline, int num_words) {
 
 	free_word_array(cmdline, last_index);
 	free_command_line(line);
-
+	return 0;
 }
 
 

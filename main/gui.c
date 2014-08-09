@@ -66,7 +66,6 @@ COORD draw_a_box(COORD current_cursor, WORD border_attributes, WORD fill_attribu
 	int screenCenterX = (consoleWidth / 2 - width / 2) + offsetX;
 	int screenCenterY = (consoleHeight / 2 - height / 2) + offsetY;
 	int test = 0;
-
 	current_cursor = moveCursor(0, 0, screenCenterX, screenCenterY);
 
 	// Drawing perimeter
