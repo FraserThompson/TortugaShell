@@ -841,19 +841,22 @@ static wchar_t **readline(int *num_words) {
 	do {
 		wcs_buffer = _getwch(); //this is worse than getwchar() but gets around the stupid double enter bug
 		switch (wcs_buffer){
-		
-		// Discard arrows/escape
+
 		case 224:
 		case 0:
 			second_wcs = _getwch();
 			switch (second_wcs){
 			case 77:
-				moveCursor(1, 0, -1, -1, CONSOLE_OUTPUT);
-				k++;
+				cursor_loc = getCursor(CONSOLE_OUTPUT);
+				if (cursor_loc.X < k + 1){
+					moveCursor(1, 0, -1, -1, CONSOLE_OUTPUT);
+				}
 				break;
 			case 75:
-				moveCursor(-1, 0, -1, -1, CONSOLE_OUTPUT);
-				k--;
+				cursor_loc = getCursor(CONSOLE_OUTPUT);
+				if (cursor_loc.X > 1){
+					moveCursor(-1, 0, -1, -1, CONSOLE_OUTPUT);
+				}
 				break;
 			}
 
@@ -966,8 +969,18 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		default:
-			line_buffer[k++] = wcs_buffer;
-			word_buffer[wordchar_count++] = wcs_buffer;
+
+			cursor_loc = getCursor(CONSOLE_OUTPUT);
+
+			// If the cursor is at the same position in the line array
+			if (cursor_loc.X == k + 1){
+				line_buffer[k++] = wcs_buffer;
+				word_buffer[wordchar_count++] = wcs_buffer;
+			} 
+			// If the cursor is less than the position in the line array
+			else if(cursor_loc.X < k + 1){
+				line_buffer[cursor_loc.X - 1] = wcs_buffer;
+			}
 			putwchar(wcs_buffer);
 
 			// Blank any possible usage tips
@@ -1011,6 +1024,9 @@ static wchar_t **readline(int *num_words) {
 	return line_array;
 }
 
+/* -----WINDOWS----
+* Plays a small song comprised of five (sort of) random notes of (sort of) random duration
+*/
 void random_song(){
 	int highest_freq = 1500;
 	int lowest_freq = 80;

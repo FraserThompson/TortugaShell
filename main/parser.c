@@ -33,7 +33,7 @@ int parse(wchar_t **cmdline, int num_words) {
 
 
 	if (num_words < 1){
-		fwprintf(stderr, L"PARSE: Error parsing tokens.\n");
+		fwprintf(stderr, L"PARSE: Error parsing tokens. Did you remember to close your quotation marks?\n");
 		return 0;
 	}
 

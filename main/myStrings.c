@@ -61,48 +61,56 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 	wchar_t *newline;
 	wchar_t *token = wcstok(str, delimiter);
 	wchar_t *long_string = L"";
+	wchar_t *third_thing = NULL;
+	wchar_t *space = L" ";
 
 	if (debug_global){ wprintf(L"SPLIT: Input: %s\n", str); }
 
 	while (token) {
-		length = wcslen(token);
-		if (debug_global){ wprintf(L"SPLIT: Working on token: %s of length %d\n", token, length); }
-
 		newline = wcschr(token, L'\n');
+
 		if (newline) {
 			*newline = 0;
 		}
+
+		length = wcslen(token);
+		if (debug_global){ wprintf(L"SPLIT: Working on token: %s of length %d\n", token, length); }
 
 		if (token[0] == L'"'){
 			if (debug_global){ wprintf(L"SPLIT: Quotations started\n", token); }
 			long_string = L"";
 			we_are_in_quotations = 1;
-			long_string = concat_string(long_string, token + 1, L" ");
-		} else if (token[length - 1] == L'"'){
+			token = token + 1;
+			length--;
+			third_thing = space;
+		} 
+		
+		if (token[length - 1] == L'"'){
 			if (debug_global){ wprintf(L"SPLIT: Quotations ended\n", token); }
 			we_are_in_quotations = 0;
 			token[length - 1] = L'\0';
-			long_string = concat_string(long_string, token, NULL);
-		}else if (we_are_in_quotations){
-			long_string = concat_string(long_string, token, L" ");
+			third_thing = NULL;
 		}
-		else {
-			long_string = token;
+		
+		if (we_are_in_quotations){
+			third_thing = space;
 		}
+
+		long_string = concat_string(long_string, token, third_thing);
 		
 		if (!we_are_in_quotations){
 			commands = erealloc(commands, sizeof(wchar_t*)* ++count);
 			commands[count - 1] = _wcsdup(long_string);
 			if (debug_global){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
+			free(long_string);
 		}
+
 		token = wcstok(0, delimiter);
 	}
 
 	//Add a null entry to the end of the array
 	commands = erealloc(commands, sizeof (wchar_t*)* (count + 1));
-
 	commands[count] = 0;
-
 	free(token);
 
 	if (debug_global){ wprintf(L"SPLIT: Returning %i tokens\n", count); }
