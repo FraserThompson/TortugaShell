@@ -7,7 +7,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define MAX_LINE 300
 #define MAX_WORD 64
-#define NUM_COMMANDS 4
+#define NUM_COMMANDS 5
 #define NUM_ATTRIBUTES 11
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,8 +122,7 @@ command_line *init_command_line(wchar_t *command, wchar_t *params, wchar_t *pipe
 */
 void free_word_array(wchar_t **cmdline, int last_index){
 	int i = 0;
-	if (debug_global > 1) wprintf(L"FREE_WORD_ARRAY: Freeing %i items...\n", last_index);
-	//free(cmdline[i++]);
+	if (debug_global) wprintf(L"FREE_WORD_ARRAY: Freeing %i items...\n", last_index);
 
 	while (i < last_index - 1){
 		free(cmdline[i]);
@@ -251,8 +250,10 @@ static node *build_command_tree(void){
 	int error = 0;
 	int debug_old = debug_global;
 	debug_global = 0;
-	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd", L"settings"};
-	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]\n", L"help\tPrints a list of possible commands.\n\tUsage: help\n", L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]\n", L"settings\tDisplays a window which lets you adjust settings.\n\t\tUsage: settings\n" };
+	wchar_t *recognized_commands[NUM_COMMANDS] = { L"cwd", L"help", L"cd", L"settings", L"quit"};
+	wchar_t *command_usage[NUM_COMMANDS] = { L"cwd\tPrints the current working directory.\n\tUsage: cwd [directory] [-h]\n", L"help\tPrints a list of possible commands.\n\tUsage: help\n",
+		L"cd\tChanges the current working directory.\n\tUsage: cd [directory] [-h]\n", L"settings\tDisplays a window which lets you adjust settings.\n\t\tUsage: settings\n", 
+		L"quit\tQuits Tortuga.\n\tUsage: quit\n"};
 
 	// First add built in commands
 	for (int i = 0; i < NUM_COMMANDS; i++){
@@ -1029,7 +1030,7 @@ int wmain(int argc, wchar_t *argv[]) {
 		drawPrompt();
 		line = readline(&num_words);
 		exit = parse(line, num_words);
-		free_word_array(line, num_words - 1);
+		free_word_array(line, num_words);
 	}
 
 	free(PATH);

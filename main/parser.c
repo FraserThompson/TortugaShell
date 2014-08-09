@@ -120,7 +120,6 @@ int parse(wchar_t **cmdline, int num_words) {
 		fwprintf(stderr, L"PARSE: Redirection error.\n");
 	}
 
-	free_word_array(cmdline, last_index);
 	free_command_line(line);
 	return 0;
 }
