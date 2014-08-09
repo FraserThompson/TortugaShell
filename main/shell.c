@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <conio.h>
+#include <time.h>
 #include "process_mgmt.h"
 #include "parser.h"
 #include "myStrings.h"
@@ -976,6 +977,20 @@ static wchar_t **readline(int *num_words) {
 	return line_array;
 }
 
+void song(){
+	int highest_freq = 1500;
+	int lowest_freq = 80;
+	int longest_dur = 200;
+	int shortest_dur = 50;
+	int r = rand() % (longest_dur + 1 - shortest_dur) + shortest_dur;
+	int g = rand() % (highest_freq + 1 - lowest_freq) + lowest_freq;
+	for (int i = 0; i < 5; i++){
+		Beep(g, r);
+		r = rand() % (longest_dur + 1 - shortest_dur) + shortest_dur;
+		g = rand() % (highest_freq + 1 - lowest_freq) + lowest_freq;
+	}
+}
+
 /* 
 * Main loop. Reads a line and parses it.
 */
@@ -1019,7 +1034,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	}
 	fclose(style_f);
 	setTransparency(CONSOLE_TRANSPARENCY);
-
+	srand(time(NULL));
 	// Check for debug flag
 	while (argv[i]){
 		if ((wcscmp(argv[i], L"-d") == 0) || (wcscmp(argv[i], L"-debug") == 0)) {
@@ -1030,7 +1045,7 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	// Build command BST from ./commands directory
 	command_tree = build_command_tree();
-
+	song();
 	// Main loop
 	while (!exit) {
 		drawPrompt();
