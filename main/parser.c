@@ -74,6 +74,11 @@ int parse(wchar_t **cmdline, int num_words) {
 		free_command_line(line);
 		return 1;
 	}
+	else if (wcscmp(line->command, L"sing") == 0){
+		if (debug_global){ wprintf(L"PARSE: Got sing.\n"); }
+		song();
+		return 0;
+	}
 
 	/* If there's more than one token */
 	if (last_index > 1){

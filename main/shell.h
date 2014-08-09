@@ -39,5 +39,6 @@ extern void free_command_line(command_line *);
 extern int does_file_exist(wchar_t *);
 extern void style_settings();
 extern int main_settings();
+extern void song();
 
 #endif
