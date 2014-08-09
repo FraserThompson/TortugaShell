@@ -7,25 +7,58 @@ Main Modules
 These modules contain functions called within the main loop.
 
 ######/main/shell.c
-`static char *readline(void)`: Prints a prompt containing the CWD and reads user input.  
+
 `int debug_global`:  
 Global variable signifying whether or not to print debug text.  0 for none, 1 for main functions, 2 for everything  
 `wchar_t* PATH`:  
 Global variable used to hold the path the user ran Tortuga from.  
+`HANDLE CONSOLE_INPUT`:  
+A handle to the stdin.  
+`HANDLE CONSOLE_OUTPUT`:  
+A handle to the stdout.  
+`int CONSOLE_TRANSPARENCY`:  
+Transparency of the window from 0-255.  
+`WORD POSSIBLE_ATTRIBUTES[]`:  
+Array of possible attributes for text.  
+`int NORMAL_ATTRIBUTES`:  
+Number value of the attributes for normal text in the POSSIBLE_ATTRIBUTES array.  
+`node *command_tree`:  
+Tree of commands in the ./commands directory, generated when program is run.  
+
+`wchar_t **readline(int *)`: 
+Reads and handles user input.  
 `typedef struct command_line`:  
 Contains information extracted from a user-inputted command line.  
 `void *emalloc(size_t)`:  
 Malloc with error checking.  
 `void *erealloc(void *, size_t)`:  
 Realloc with error checking.
+`void advPrint(wchar_t *, HANDLE, int, int, WORD)`:  
+Prints a string to x and y coordinates.  
+`void printHeader(wchar_t *)`:  
+Used to print the header.  
+`void printFooter(wchar_t *)`:  
+Used to print the footer.  
+`command_line *init_command_line(wchar_t *, wchar_t *, wchar_t *, wchar_t *, wchar_t *, int)`:  
+Initializes the command_line struct and allocates memory.  
+`void free_word_array(wchar_t **, int)`:  
+Free's memory allocated to a 2D array of strings.  
+`free_command_line(command_line *)`:  
+Free's memory allocated to a command_line struct.  
+`int does_file_exist(wchar_t *)`:  
+Check if a file exists.  
+`void style_settings(void)`:  
+Displays the style settings box and handles input.  
+`int main_settings(void)`:  
+Displays the main settings box and handles input.  
+`void random_song(void)`:  
+Generates a random 5 note song from beeps.  
+`void write_style_file(void)`:  
+Writes user settings to style.txt.  
   
 ######/main/parser.c
-`void parse_command(command_line)`:  
-Processes an individual command.  
-Parameters: The command_line struct.
-`void parse(wchar_t *)`:  
+`int parse(wchar_t **, int)`:  
 Parses a line of commands.  
-Parameter: Line of commands.  
 `void display_info(command_line)`:  
 Prints out everything contained in the struct.  
 Parameter: command_line struct  
