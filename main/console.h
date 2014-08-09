@@ -14,5 +14,6 @@ extern int getConsoleTop(void);
 extern int getConsoleBottom(void);
 extern void clearLine(int, int, int, WORD);
 extern void advPrint(wchar_t *, HANDLE, int, int, WORD);
+extern void setTransparency(int);
 
 #endif

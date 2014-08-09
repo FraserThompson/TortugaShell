@@ -57,10 +57,11 @@ void parse(wchar_t **cmdline, int num_words) {
 	}
 	else if (wcscmp(line->command, L"settings") == 0){
 		if (debug_global){ wprintf(L"PARSE: Got settings.\n"); }
-		/*line->params = get_help();
-		line->command = _wcsdup(L"echo");
-		line->type = 0;*/
-		style_settings();
+		int t = 1;
+		moveCursor(0, 5, -1, -1);
+		while (t){
+			t = main_settings();
+		}
 		free_command_line(line);
 		return;
 	}

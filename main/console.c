@@ -110,6 +110,12 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 	SetConsoleCursorPosition(CONSOLE_OUTPUT, oldCoords);
 }
 
+void setTransparency(int t){
+	HWND ConsoleWindow = GetConsoleWindow();
+	SetWindowLong(ConsoleWindow, GWL_EXSTYLE, GetWindowLong(ConsoleWindow, GWL_EXSTYLE) | WS_EX_LAYERED);
+	SetLayeredWindowAttributes(ConsoleWindow, 0, t, LWA_ALPHA);
+}
+
 /* -----WINDOWS----
 * Moves the console cursor to a specified position relative to current
 * Params: num of rows/columns to move relative or absolute

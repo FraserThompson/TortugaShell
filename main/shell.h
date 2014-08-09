@@ -37,6 +37,7 @@ extern command_line *init_command_line(wchar_t *, wchar_t *, wchar_t *, wchar_t 
 extern void free_word_array(wchar_t **, int);
 extern void free_command_line(command_line *);
 extern int does_file_exist(wchar_t *);
-extern int style_settings();
+extern void style_settings();
+extern int main_settings();
 
 #endif
