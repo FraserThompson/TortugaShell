@@ -1,12 +1,14 @@
 #include "shell.h"
+#include "console.h"
+
 
 /* -----WINDOWS----
 * Returns the coordinate of the top visible line of the console
 * Return: Integer value of top coordinate
 */
-int getConsoleTop(void){
+int getConsoleTop(HANDLE buffer){
 	CONSOLE_SCREEN_BUFFER_INFO screen_info;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	GetConsoleScreenBufferInfo(buffer, &screen_info);
 	return screen_info.srWindow.Top;
 }
 
@@ -14,9 +16,9 @@ int getConsoleTop(void){
 * Returns the coordinate of the bottom visible line of the console
 * Return: Integer value of bottom coordinate
 */
-int getConsoleBottom(void){
+int getConsoleBottom(HANDLE buffer){
 	CONSOLE_SCREEN_BUFFER_INFO screen_info;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	GetConsoleScreenBufferInfo(buffer, &screen_info);
 	return screen_info.srWindow.Bottom;
 }
 
@@ -40,21 +42,22 @@ void clearLine(int width, int x, int y, WORD attributes){
 	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
 }
 
-void clearScreen(){
-	int height = getConsoleHeight();
-	int width = getConsoleWidth();
-	for (int i = 0; i < height; i++){
+void clearScreen(buffer){
+	int height = getConsoleHeight(buffer);
+	int width = getConsoleWidth(buffer);
+	for (int i = 0; i < height * 2; i++){
 		clearLine(width, 1, i, NORMAL_ATTRIBUTES);
 	}
+	moveCursor(0, 0, 1, 1, buffer);
 }
 
 /* -----WINDOWS----
 * Gets the current console cursor position
 * Return: Cursor position
 */
-COORD getCursor(){
+COORD getCursor(HANDLE buffer){
 	CONSOLE_SCREEN_BUFFER_INFO cursor_position;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &cursor_position);
+	GetConsoleScreenBufferInfo(buffer, &cursor_position);
 	return cursor_position.dwCursorPosition;
 }
 
@@ -62,9 +65,9 @@ COORD getCursor(){
 * Gets the width of the console
 * Return: Console width in columns
 */
-int getConsoleWidth(){
+int getConsoleWidth(HANDLE buffer){
 	CONSOLE_SCREEN_BUFFER_INFO console;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &console);
+	GetConsoleScreenBufferInfo(buffer, &console);
 	int width = console.dwSize.X;
 	return width;
 }
@@ -73,23 +76,23 @@ int getConsoleWidth(){
 * Gets the height of the console
 * Return: Console width in rows
 */
-int getConsoleHeight(){
+int getConsoleHeight(HANDLE buffer){
 	CONSOLE_SCREEN_BUFFER_INFO console;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &console);
+	GetConsoleScreenBufferInfo(buffer, &console);
 	//int height = console.dwSize.Y;
 	int height = console.srWindow.Bottom - console.srWindow.Top + 1;
 	return height;
 }
 
 /* -----WINDOWS----
-* Prints a wchar string to a location in the CONSOLE_OUTPUT with a specific set of attributes
-* Params: Wchar string to print, handle of CONSOLE_OUTPUT, x coord, y coord, attributes
+* Prints a wchar string to a location in the screenbuffer with a specific set of attributes
+* Params: Wchar string to print, handle of buffer to output to, x coord, y coord, attributes
 */
-void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attributes){
+void advPrint(wchar_t *content, HANDLE output, int x, int y, WORD attributes){
 	COORD coords;
 	COORD oldCoords;
 	CONSOLE_SCREEN_BUFFER_INFO screen_info;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
+	GetConsoleScreenBufferInfo(output, &screen_info);
 	oldCoords.X = screen_info.dwCursorPosition.X;
 	oldCoords.Y = screen_info.dwCursorPosition.Y;
 
@@ -99,7 +102,7 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 		coords.Y = oldCoords.Y;
 	}
 	else if (y == 0){
-		coords.Y = getConsoleTop();
+		coords.Y = getConsoleTop(output);
 		coords.X = x;
 	}
 	else {
@@ -111,11 +114,11 @@ void advPrint(wchar_t *content, HANDLE CONSOLE_OUTPUT, int x, int y, WORD attrib
 	if (attributes == NULL){
 		attributes = POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES];
 	}
-
-	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);
-	SetConsoleTextAttribute(CONSOLE_OUTPUT, attributes);
+	wchar_t buf[2048];
+	SetConsoleCursorPosition(output, coords);
+	SetConsoleTextAttribute(output, attributes);
 	wprintf(L"%s", content);
-	SetConsoleCursorPosition(CONSOLE_OUTPUT, oldCoords);
+	SetConsoleCursorPosition(output, oldCoords);
 }
 
 void setTransparency(int t){
@@ -129,10 +132,10 @@ void setTransparency(int t){
 * Params: num of rows/columns to move relative or absolute
 * Return: The new position
 */
-COORD moveCursor(int x, int y, int x_abs, int y_abs) {
+COORD moveCursor(int x, int y, int x_abs, int y_abs, HANDLE buffer) {
 	COORD coords;
 	CONSOLE_SCREEN_BUFFER_INFO cursor_position;
-	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &cursor_position);
+	GetConsoleScreenBufferInfo(buffer, &cursor_position);
 	coords = cursor_position.dwCursorPosition;
 	if (x_abs >= 0 || y_abs >= 0) {
 		coords.X = x_abs;
@@ -148,6 +151,6 @@ COORD moveCursor(int x, int y, int x_abs, int y_abs) {
 		coords.Y += y;
 	}
 
-	SetConsoleCursorPosition(CONSOLE_OUTPUT, coords);
+	SetConsoleCursorPosition(buffer, coords);
 	return coords;
 }

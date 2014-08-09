@@ -9,6 +9,12 @@
 #define MAX_WORD 64
 #define NUM_COMMANDS 5
 #define NUM_ATTRIBUTES 11
+
+// for memory leak checking
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +26,7 @@
 #include "gui.h"
 #include "cwd.h"
 #include "console.h"
+
 
 int debug_global = 1;
 int found = 0; // used as a flag for highlight_command to denote whether we need to build another directory bst
@@ -335,7 +342,7 @@ static node *build_command_tree(void){
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT
 */
 static void printHeader(wchar_t *content){
-	int width = getConsoleWidth();
+	int width = getConsoleWidth(CONSOLE_OUTPUT);
 	int len;
 	int center_x;
 	COORD topCoords;
@@ -343,7 +350,7 @@ static void printHeader(wchar_t *content){
 	// Work out where to put stuff
 	len = wcslen(content);
 	center_x = width / 2 - len / 2;
-	topCoords.Y = getConsoleTop();
+	topCoords.Y = getConsoleTop(CONSOLE_OUTPUT);
 	topCoords.X = 0;
 
 	clearLine(width, topCoords.X, topCoords.Y, POSSIBLE_ATTRIBUTES[HEADER_FOOTER_ATTRIBUTES]);
@@ -363,12 +370,12 @@ static void printHeader(wchar_t *content){
 static void printFooter(wchar_t *content){
 	COORD bottomCoords;
 	CONSOLE_SCREEN_BUFFER_INFO screen_info;
-	int width = getConsoleWidth();
+	int width = getConsoleWidth(CONSOLE_OUTPUT);
 
 	// Work out where to put stuff
 	GetConsoleScreenBufferInfo(CONSOLE_OUTPUT, &screen_info);
 	bottomCoords.X = 0;
-	bottomCoords.Y = getConsoleBottom() - 2;
+	bottomCoords.Y = getConsoleBottom(CONSOLE_OUTPUT) - 2;
 
 	clearLine(width, bottomCoords.X, bottomCoords.Y, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
@@ -387,7 +394,7 @@ static void printFooter(wchar_t *content){
 * Return: 0 if we're to quit, 1 if we should continue displaying
 */
 int main_settings(){
-	COORD current_cursor = getCursor();
+	COORD current_cursor = getCursor(CONSOLE_OUTPUT);
 	COORD options_cursor = { 1, 1 };
 	COORD original_cursor = current_cursor;
 	WORD select_attributes = BACKGROUND_BLUE | FOREGROUND_INTENSITY;
@@ -412,7 +419,7 @@ int main_settings(){
 	wint_t secondInput;
 
 	current_cursor = draw_settings(border_attributes, background_attributes, title, footer, options, attributes, num_options, height, width, 5, offsetX, offsetY);
-	current_cursor = getCursor();
+	current_cursor = getCursor(CONSOLE_OUTPUT);
 
 	while (listening){
 		// Draw the selection cursor
@@ -428,7 +435,7 @@ int main_settings(){
 					//blank old cursor
 					FillConsoleOutputAttribute(CONSOLE_OUTPUT, background_attributes, width - 1, current_cursor, &numChars);
 					//move down
-					current_cursor = moveCursor(0, 1, -1, -1);
+					current_cursor = moveCursor(0, 1, -1, -1, CONSOLE_OUTPUT);
 					//draw cursor
 					FillConsoleOutputAttribute(CONSOLE_OUTPUT, select_attributes, width - 1, current_cursor, &numChars);
 					i++;
@@ -438,7 +445,7 @@ int main_settings(){
 			else if (secondInput == 72){
 				if (i > 0){
 					FillConsoleOutputAttribute(CONSOLE_OUTPUT, background_attributes, width - 1, current_cursor, &numChars);
-					current_cursor = moveCursor(0, -1, -1, -1);
+					current_cursor = moveCursor(0, -1, -1, -1, CONSOLE_OUTPUT);
 					FillConsoleOutputAttribute(CONSOLE_OUTPUT, select_attributes, width - 1, current_cursor, &numChars);
 					i--;
 
@@ -508,7 +515,7 @@ int main_settings(){
 * Displays the style settings menu which is accessed from the main settings menu
 */
 static void style_settings(){
-	COORD current_cursor = getCursor();
+	COORD current_cursor = getCursor(CONSOLE_OUTPUT);
 	COORD options_cursor = { 1, 1 };
 	COORD cursor_cursor = { 1, 1 };
 	COORD original_cursor = current_cursor;
@@ -534,7 +541,7 @@ static void style_settings(){
 
 	options_cursor = draw_settings(BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED, 
 		L"STYLES", L"PRESS ENTER TO APPLY", options, attributes, num_options, height, width, 2, offsetX, offsetY);
-	current_cursor = getCursor();
+	current_cursor = getCursor(CONSOLE_OUTPUT);
 	cursor_cursor = current_cursor;
 
 	while (listening){
@@ -551,7 +558,7 @@ static void style_settings(){
 				if (i < num_options - 1){
 					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
 					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
-					current_cursor = moveCursor(0, 1, -1, -1);
+					current_cursor = moveCursor(0, 1, -1, -1, CONSOLE_OUTPUT);
 					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
 					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
 					i++;
@@ -562,7 +569,7 @@ static void style_settings(){
 				if (i > 0){
 					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
 					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
-					current_cursor = moveCursor(0, -1, -1, -1);
+					current_cursor = moveCursor(0, -1, -1, -1, CONSOLE_OUTPUT);
 					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
 					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
 					i--;
@@ -571,7 +578,7 @@ static void style_settings(){
 			}
 			// Left
 			else if (secondInput == 75){
-				current_cursor = moveCursor(0, 0, cursor_cursor.X, current_cursor.Y);
+				current_cursor = moveCursor(0, 0, cursor_cursor.X, current_cursor.Y, CONSOLE_OUTPUT);
 				switch (i){
 				case 0:
 					if (HEADER_FOOTER_ATTRIBUTES > 0) HEADER_FOOTER_ATTRIBUTES--;
@@ -606,14 +613,14 @@ static void style_settings(){
 					}
 					break;
 				}
-				original_cursor = getCursor();
-				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y);
+				original_cursor = getCursor(CONSOLE_OUTPUT);
+				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y, CONSOLE_OUTPUT);
 				current_cursor = draw_options(options, attributes, num_options, width, current_cursor, offsetX, offsetY);
-				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y);
+				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y, CONSOLE_OUTPUT);
 			}
 			// Right
 			else if (secondInput == 77){
-				current_cursor = moveCursor(0, 0, cursor_cursor.X + width - 2, current_cursor.Y);
+				current_cursor = moveCursor(0, 0, cursor_cursor.X + width - 2, current_cursor.Y, CONSOLE_OUTPUT);
 				switch (i){
 				case 0:
 					if (HEADER_FOOTER_ATTRIBUTES < NUM_ATTRIBUTES - 1) HEADER_FOOTER_ATTRIBUTES++;
@@ -648,10 +655,10 @@ static void style_settings(){
 					}
 					break;
 				}
-				original_cursor = getCursor();
-				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y);
+				original_cursor = getCursor(CONSOLE_OUTPUT);
+				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y, CONSOLE_OUTPUT);
 				current_cursor = draw_options(options, attributes, num_options, width, current_cursor, offsetX, offsetY);
-				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y);
+				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y, CONSOLE_OUTPUT);
 			}
 			break;
 
@@ -674,9 +681,9 @@ static void style_settings(){
 */
 static void drawPrompt(void) {
 	wchar_t *top = concat_string(L"", getCWD(), L"\n");
-	COORD current_cursor = getCursor();
-	int height = getConsoleHeight();
-	int width = getConsoleWidth();
+	COORD current_cursor = getCursor(CONSOLE_OUTPUT);
+	int height = getConsoleHeight(CONSOLE_OUTPUT);
+	int width = getConsoleWidth(CONSOLE_OUTPUT);
 
 	// If we're going to be printing over the footer then move everything down
 	if (current_cursor.Y >= height - 2){
@@ -688,8 +695,8 @@ static void drawPrompt(void) {
 		clearLine(width, 0, 0, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 		// Move cursor down to scroll then back up for typing
-		current_cursor = moveCursor(0, 3, -1, -1);
-		current_cursor = moveCursor(0, -4, -1, -1);
+		current_cursor = moveCursor(0, 3, -1, -1, CONSOLE_OUTPUT);
+		current_cursor = moveCursor(0, -4, -1, -1, CONSOLE_OUTPUT);
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[PROMPT_ATTRIBUTES]);
@@ -704,7 +711,7 @@ static void drawPrompt(void) {
 * Param: Command to check, count of characters in that command
 */
 static int highlight_command(wchar_t *command, int wordchar_count){
-	COORD cursor_loc = getCursor(); //current cursor location
+	COORD cursor_loc = getCursor(CONSOLE_OUTPUT); //current cursor location
 	COORD word_begin = cursor_loc; //cursor location at the beginning of the word
 	word_begin.X -= wordchar_count;
 
@@ -717,7 +724,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	DWORD num_read;
 	DWORD written;
 
-	int width = getConsoleWidth();
+	int width = getConsoleWidth(CONSOLE_OUTPUT);
 	int exists;
 	int suggestionLen;
 	int returnValue = 0;
@@ -794,11 +801,11 @@ static wchar_t **readline(int *num_words) {
 	wint_t wcs_buffer;
 	DWORD backspace_read;
 	COORD cursor_loc;
-	COORD cursor_orig = getCursor(); //location of the cursor before anything has happened
+	COORD cursor_orig = getCursor(CONSOLE_OUTPUT); //location of the cursor before anything has happened
 	int count;
 	int end_of_line = 0;
-	int width = getConsoleWidth();
-	int bottom = getConsoleBottom();
+	int width = getConsoleWidth(CONSOLE_OUTPUT);
+	int bottom = getConsoleBottom(CONSOLE_OUTPUT);
 	int listening = 1; //used to end the while loop
 	int k = 0; //number of charactres in line array
 	int word_count = 0; //number of words
@@ -821,7 +828,7 @@ static wchar_t **readline(int *num_words) {
 
 		case L'\t':
 			if (TAB_SUGGESTION){
-				cursor_loc = getCursor();
+				cursor_loc = getCursor(CONSOLE_OUTPUT);
 
 				// Copy all the relevant things to the places
 				wcscpy(line_buffer, TAB_SUGGESTION);
@@ -831,7 +838,7 @@ static wchar_t **readline(int *num_words) {
 
 				// Print the suggestion and move cursor to the end
 				advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, POSSIBLE_ATTRIBUTES[DIR_HIGHLIGHT_ATTRIBUTES]);
-				moveCursor(1 + k - cursor_loc.X, 0, -1, -1);
+				moveCursor(1 + k - cursor_loc.X, 0, -1, -1, CONSOLE_OUTPUT);
 
 				// Lazy stuff to get around an issue
 				word_buffer[--wordchar_count] = L'\0';
@@ -849,7 +856,7 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		case L'\b':
-			cursor_loc = getCursor();
+			cursor_loc = getCursor(CONSOLE_OUTPUT);
 			// Only backspace if we're within the bounds
 			if (cursor_loc.X > 1 || cursor_loc.Y > cursor_orig.Y){
 
@@ -894,7 +901,7 @@ static wchar_t **readline(int *num_words) {
 
 			}
 			else {
-				cursor_loc = moveCursor(1, 0, -1, -1);
+				cursor_loc = moveCursor(1, 0, -1, -1, CONSOLE_OUTPUT);
 			}
 
 			putwchar(wcs_buffer);
@@ -954,7 +961,7 @@ static wchar_t **readline(int *num_words) {
 	clearLine(width * 3, 0, bottom - 2, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 	// Move cursor down a line
-	cursor_loc = moveCursor(0, 1, 0, -1);
+	cursor_loc = moveCursor(0, 1, 0, -1, CONSOLE_OUTPUT);
 
 	// Split into array
 	line_array = split(line_buffer, L" ", &count);
@@ -1035,6 +1042,6 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	free(PATH);
 	bst_free(command_tree);
-
+	_CrtDumpMemoryLeaks();
 	return EXIT_SUCCESS;
 }

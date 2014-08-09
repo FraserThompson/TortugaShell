@@ -7,6 +7,7 @@
  * Contains methods which help with parsing commands.
  */
 #define _CRT_SECURE_NO_WARNINGS
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <Windows.h>
@@ -59,12 +60,12 @@ int parse(wchar_t **cmdline, int num_words) {
 	else if (wcscmp(line->command, L"settings") == 0){
 		if (debug_global){ wprintf(L"PARSE: Got settings.\n"); }
 		int t = 1;
-		clearScreen();
+		clearScreen(CONSOLE_OUTPUT);
 		while (t){
 			t = main_settings();
 		}
 		free_command_line(line);
-		moveCursor(0, 0, 1, 0);
+		moveCursor(0, 0, 1, 0, CONSOLE_OUTPUT);
 		return 0;
 	}
 	else if (wcscmp(line->command, L"quit") == 0){

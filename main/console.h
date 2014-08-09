@@ -6,14 +6,14 @@
 #define CONSOLE
 #include <Windows.h>
 
-extern COORD getCursor(void);
-extern COORD moveCursor(int, int, int, int);
-extern int getConsoleWidth(void);
-extern int getConsoleHeight(void);
-extern int getConsoleTop(void);
-extern int getConsoleBottom(void);
+extern COORD getCursor(HANDLE);
+extern COORD moveCursor(int, int, int, int, HANDLE);
+extern int getConsoleWidth(HANDLE);
+extern int getConsoleHeight(HANDLE);
+extern int getConsoleTop(HANDLE);
+extern int getConsoleBottom(HANDLE);
 extern void clearLine(int, int, int, WORD);
-extern void clearScreen();
+extern void clearScreen(HANDLE);
 extern void advPrint(wchar_t *, HANDLE, int, int, WORD);
 extern void setTransparency(int);
 
