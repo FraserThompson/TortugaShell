@@ -65,6 +65,7 @@ int parse(wchar_t **cmdline, int num_words) {
 			t = main_settings();
 		}
 		free_command_line(line);
+		clearScreen(CONSOLE_OUTPUT);
 		moveCursor(0, 0, 1, 0, CONSOLE_OUTPUT);
 		return 0;
 	}

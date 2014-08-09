@@ -129,7 +129,6 @@ command_line *init_command_line(wchar_t *command, wchar_t *params, wchar_t *pipe
 */
 void free_word_array(wchar_t **cmdline, int last_index){
 	int i = 0;
-	if (debug_global) wprintf(L"FREE_WORD_ARRAY: Freeing %i items...\n", last_index);
 
 	while (i < last_index - 1){
 		free(cmdline[i]);
