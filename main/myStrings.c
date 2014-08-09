@@ -55,25 +55,49 @@ wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
 */
 wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 	int count = 0;
+	int length;
+	int we_are_in_quotations = 0;
 	wchar_t **commands = 0;
 	wchar_t *newline;
 	wchar_t *token = wcstok(str, delimiter);
+	wchar_t *long_string = L"";
 
-	if (debug_global > 1){ wprintf(L"SPLIT: Input: %s\n", str); }
+	if (debug_global){ wprintf(L"SPLIT: Input: %s\n", str); }
 
 	while (token) {
-		if (debug_global > 1){ wprintf(L"SPLIT: Working on token: %s\n", token); }
+		length = wcslen(token);
+		if (debug_global){ wprintf(L"SPLIT: Working on token: %s of length %d\n", token, length); }
 
-		// Remove newline character
 		newline = wcschr(token, L'\n');
 		if (newline) {
 			*newline = 0;
 		}
 
-		commands = erealloc(commands, sizeof(wchar_t*)* ++count);
-		commands[count - 1] = _wcsdup(token);
+		if (token[0] == L'"'){
+			long_string = L"";
+			if (debug_global){ wprintf(L"SPLIT: Quotations started\n", token); }
+			we_are_in_quotations = 1;
+			long_string = concat_string(long_string, token + 1, L" ");
+		} 
+		else if (token[length - 1] == L'"'){
+			if (debug_global){ wprintf(L"SPLIT: Quotations ended\n", token); }
+			we_are_in_quotations = 0;
+			token[length - 1] = L'\0';
+			long_string = concat_string(long_string, token, NULL);
+		}
+		else if (we_are_in_quotations){
+			long_string = concat_string(long_string, token, NULL);
+		}
+		else {
+			long_string = token;
+		}
+		
+		if (!we_are_in_quotations){
+			commands = erealloc(commands, sizeof(wchar_t*)* ++count);
+			commands[count - 1] = _wcsdup(long_string);
+			if (debug_global){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
+		}
 		token = wcstok(0, delimiter);
-		if (debug_global > 1){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
 	}
 
 	//Add a null entry to the end of the array
@@ -83,7 +107,7 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 
 	free(token);
 
-	if (debug_global > 1){ wprintf(L"SPLIT: Returning %i tokens\n", count); }
+	if (debug_global){ wprintf(L"SPLIT: Returning %i tokens\n", count); }
 	*last_index = count;
 	return commands;
 }
