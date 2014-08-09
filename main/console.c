@@ -1,6 +1,6 @@
+#include <wchar.h>
 #include "shell.h"
 #include "console.h"
-
 
 /* -----WINDOWS----
 * Returns the coordinate of the top visible line of the console
@@ -42,7 +42,7 @@ void clearLine(int width, int x, int y, WORD attributes){
 	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
 }
 
-void clearScreen(buffer){
+void clearScreen(HANDLE buffer){
 	int height = getConsoleHeight(buffer);
 	int width = getConsoleWidth(buffer);
 	for (int i = 0; i < height * 2; i++){
@@ -114,7 +114,7 @@ void advPrint(wchar_t *content, HANDLE output, int x, int y, WORD attributes){
 	if (attributes == NULL){
 		attributes = POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES];
 	}
-	wchar_t buf[2048];
+
 	SetConsoleCursorPosition(output, coords);
 	SetConsoleTextAttribute(output, attributes);
 	wprintf(L"%s", content);

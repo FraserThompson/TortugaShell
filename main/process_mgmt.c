@@ -202,7 +202,7 @@ static int open_input_pipe(wchar_t *redirectIn){
 * Parameters: line->params
 * Return: wchar_t representation of the argv
 */
-wchar_t *get_argv(wchar_t *params, wchar_t *command){
+static wchar_t *get_argv(wchar_t *params, wchar_t *command){
 	wchar_t *argv;
 
 	if (params){

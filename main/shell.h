@@ -29,17 +29,11 @@ extern node *command_tree;
 // Methods
 extern void *emalloc(size_t);
 extern void *erealloc(void *, size_t);
-extern wchar_t **readline(int *);
 extern void advPrint(wchar_t *, HANDLE, int, int, WORD);
-extern void printHeader(wchar_t *);
-extern void printFooter(wchar_t *);
 extern command_line *init_command_line(wchar_t *, wchar_t *, wchar_t *, wchar_t *, wchar_t *, int);
 extern void free_word_array(wchar_t **, int);
 extern void free_command_line(command_line *);
-extern int does_file_exist(wchar_t *);
-extern void style_settings(void);
 extern int main_settings(void);
 extern void random_song(void);
-extern void write_style_file(void);
 
 #endif

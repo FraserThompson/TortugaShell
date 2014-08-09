@@ -331,6 +331,16 @@ static node *build_command_tree(void){
 	return root;
 }
 
+/* -----CROSS-PLATFORM----
+* Updates style.txt with current values
+*/
+static void write_style_file(){
+	FILE *style_f = fopen("style.txt", "w");
+	fprintf(style_f, "%d %d %d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY, debug_global, play_song);
+	fclose(style_f);
+}
+
+
 /* -----WINDOWS----
 * Clears a space at the top and prints the wchar content string in the middle of it.
 * Params: Wchar string to print, handle of CONSOLE_OUTPUT
@@ -381,6 +391,168 @@ static void printFooter(wchar_t *content){
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
+}
+
+/* -----WINDOWS----
+* Displays the style settings menu which is accessed from the main settings menu
+*/
+static void style_settings(){
+	COORD current_cursor = getCursor(CONSOLE_OUTPUT);
+	COORD options_cursor = { 1, 1 };
+	COORD cursor_cursor = { 1, 1 };
+	COORD original_cursor = current_cursor;
+	WORD select_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED;
+
+	int num_options = 7;
+	wchar_t *intstr = emalloc(sizeof(wchar_t)* 20);
+	swprintf(intstr, 20, L"TRANSPARENCY: %d  ", CONSOLE_TRANSPARENCY);
+	wchar_t *options[7] = { L"HEADER FOOTER", L"NORMAL", L"PROMPT", L"DIR HIGHLIGHT", L"FILE HIGHLIGHT", L"TAB SUGGESTION", intstr };
+	int attributes[7] = { HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, 10 };
+
+	int i = 0;
+	int height = 10;
+	int width = 30;
+	int num_read;
+	int listening = 1;
+	int offsetY = 4;
+	int offsetX = 9;
+
+	FILE *style_f;
+	wint_t input;
+	wint_t secondInput;
+
+	options_cursor = draw_settings(BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED,
+		L"STYLES", L"PRESS ENTER TO APPLY", options, attributes, num_options, height, width, 2, offsetX, offsetY);
+	current_cursor = getCursor(CONSOLE_OUTPUT);
+	cursor_cursor = current_cursor;
+
+	while (listening){
+		// Draw the selection cursors;
+		advPrint(L"<", CONSOLE_OUTPUT, cursor_cursor.X, current_cursor.Y, select_attributes);
+		advPrint(L">", CONSOLE_OUTPUT, cursor_cursor.X + width - 2, current_cursor.Y, select_attributes);
+		input = _getwch();
+		switch (input){
+		case 224:
+		case 0:
+			secondInput = _getwch();
+			// Down
+			if (secondInput == 80){
+				if (i < num_options - 1){
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					current_cursor = moveCursor(0, 1, -1, -1, CONSOLE_OUTPUT);
+					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					i++;
+				}
+			}
+			// Up
+			else if (secondInput == 72){
+				if (i > 0){
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					current_cursor = moveCursor(0, -1, -1, -1, CONSOLE_OUTPUT);
+					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					i--;
+
+				}
+			}
+			// Left
+			else if (secondInput == 75){
+				current_cursor = moveCursor(0, 0, cursor_cursor.X, current_cursor.Y, CONSOLE_OUTPUT);
+				switch (i){
+				case 0:
+					if (HEADER_FOOTER_ATTRIBUTES > 0) HEADER_FOOTER_ATTRIBUTES--;
+					attributes[0] = HEADER_FOOTER_ATTRIBUTES;
+					break;
+				case 1:
+					if (NORMAL_ATTRIBUTES > 0) NORMAL_ATTRIBUTES--;
+					attributes[1] = NORMAL_ATTRIBUTES;
+					break;
+				case 2:
+					if (PROMPT_ATTRIBUTES > 0) PROMPT_ATTRIBUTES--;
+					attributes[2] = PROMPT_ATTRIBUTES;
+					break;
+				case 3:
+					if (DIR_HIGHLIGHT_ATTRIBUTES > 0) DIR_HIGHLIGHT_ATTRIBUTES--;
+					attributes[3] = DIR_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 4:
+					if (FILE_HIGHLIGHT_ATTRIBUTES > 0) FILE_HIGHLIGHT_ATTRIBUTES--;
+					attributes[4] = FILE_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 5:
+					if (TAB_SUGGESTION_ATTRIBUTES > 0) TAB_SUGGESTION_ATTRIBUTES--;
+					attributes[5] = TAB_SUGGESTION_ATTRIBUTES;
+					break;
+				case 6:
+					if (CONSOLE_TRANSPARENCY > 50) {
+						CONSOLE_TRANSPARENCY--;
+						swprintf(intstr, 20, L"TRANSPARENCY: %d  ", CONSOLE_TRANSPARENCY);
+						wcscpy(options[6], intstr);
+						setTransparency(CONSOLE_TRANSPARENCY);
+					}
+					break;
+				}
+				original_cursor = getCursor(CONSOLE_OUTPUT);
+				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y, CONSOLE_OUTPUT);
+				current_cursor = draw_options(options, attributes, num_options, width, current_cursor, offsetX, offsetY);
+				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y, CONSOLE_OUTPUT);
+			}
+			// Right
+			else if (secondInput == 77){
+				current_cursor = moveCursor(0, 0, cursor_cursor.X + width - 2, current_cursor.Y, CONSOLE_OUTPUT);
+				switch (i){
+				case 0:
+					if (HEADER_FOOTER_ATTRIBUTES < NUM_ATTRIBUTES - 1) HEADER_FOOTER_ATTRIBUTES++;
+					attributes[0] = HEADER_FOOTER_ATTRIBUTES;
+					break;
+				case 1:
+					if (NORMAL_ATTRIBUTES < NUM_ATTRIBUTES - 1) NORMAL_ATTRIBUTES++;
+					attributes[1] = NORMAL_ATTRIBUTES;
+					break;
+				case 2:
+					if (PROMPT_ATTRIBUTES < NUM_ATTRIBUTES - 1) PROMPT_ATTRIBUTES++;
+					attributes[2] = PROMPT_ATTRIBUTES;
+					break;
+				case 3:
+					if (DIR_HIGHLIGHT_ATTRIBUTES < NUM_ATTRIBUTES - 1) DIR_HIGHLIGHT_ATTRIBUTES++;
+					attributes[3] = DIR_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 4:
+					if (FILE_HIGHLIGHT_ATTRIBUTES < NUM_ATTRIBUTES - 1) FILE_HIGHLIGHT_ATTRIBUTES++;
+					attributes[4] = FILE_HIGHLIGHT_ATTRIBUTES;
+					break;
+				case 5:
+					if (TAB_SUGGESTION_ATTRIBUTES < NUM_ATTRIBUTES - 1) TAB_SUGGESTION_ATTRIBUTES++;
+					attributes[5] = TAB_SUGGESTION_ATTRIBUTES;
+					break;
+				case 6:
+					if (CONSOLE_TRANSPARENCY < 254) {
+						CONSOLE_TRANSPARENCY++;
+						swprintf(intstr, 20, L"TRANSPARENCY: %d  ", CONSOLE_TRANSPARENCY);
+						wcscpy(options[6], intstr);
+						setTransparency(CONSOLE_TRANSPARENCY);
+					}
+					break;
+				}
+				original_cursor = getCursor(CONSOLE_OUTPUT);
+				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y, CONSOLE_OUTPUT);
+				current_cursor = draw_options(options, attributes, num_options, width, current_cursor, offsetX, offsetY);
+				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y, CONSOLE_OUTPUT);
+			}
+			break;
+
+		case L'\r':
+			listening = 0;
+			break;
+		}
+	}
+
+	write_style_file();
+	current_cursor = clear_a_box(current_cursor, height, width, offsetX, offsetY);
+	free(intstr);
 }
 
 /* -----WINDOWS----
@@ -524,176 +696,6 @@ int main_settings(){
 	return exit;
 }
 
-/* -----CROSS-PLATFORM----
-* Updates style.txt with current values
-*/
-static void write_style_file(){
-	FILE *style_f = fopen("style.txt", "w");
-	fprintf(style_f, "%d %d %d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY, debug_global, play_song);
-	fclose(style_f);
-}
-
-/* -----WINDOWS----
-* Displays the style settings menu which is accessed from the main settings menu
-*/
-static void style_settings(){
-	COORD current_cursor = getCursor(CONSOLE_OUTPUT);
-	COORD options_cursor = { 1, 1 };
-	COORD cursor_cursor = { 1, 1 };
-	COORD original_cursor = current_cursor;
-	WORD select_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED;
-
-	int num_options = 7;
-	wchar_t *intstr = emalloc(sizeof(wchar_t)* 20);
-	swprintf(intstr, 20, L"TRANSPARENCY: %d  ", CONSOLE_TRANSPARENCY);
-	wchar_t *options[7] = { L"HEADER FOOTER", L"NORMAL", L"PROMPT", L"DIR HIGHLIGHT", L"FILE HIGHLIGHT", L"TAB SUGGESTION", intstr };
-	int attributes[7] = { HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, 10 };
-
-	int i = 0;
-	int height = 10;
-	int width = 30;
-	int num_read;
-	int listening = 1;
-	int offsetY = 4;
-	int offsetX = 9;
-
-	FILE *style_f;
-	wint_t input;
-	wint_t secondInput;
-
-	options_cursor = draw_settings(BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY, BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED, 
-		L"STYLES", L"PRESS ENTER TO APPLY", options, attributes, num_options, height, width, 2, offsetX, offsetY);
-	current_cursor = getCursor(CONSOLE_OUTPUT);
-	cursor_cursor = current_cursor;
-
-	while (listening){
-		// Draw the selection cursors;
-		advPrint(L"<", CONSOLE_OUTPUT, cursor_cursor.X, current_cursor.Y, select_attributes);
-		advPrint(L">", CONSOLE_OUTPUT, cursor_cursor.X + width - 2, current_cursor.Y, select_attributes);
-		input = _getwch();
-		switch (input){
-		case 224:
-		case 0:
-			secondInput = _getwch();
-			// Down
-			if (secondInput == 80){
-				if (i < num_options - 1){
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
-					current_cursor = moveCursor(0, 1, -1, -1, CONSOLE_OUTPUT);
-					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
-					i++;
-				}
-			}
-			// Up
-			else if (secondInput == 72){
-				if (i > 0){
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
-					current_cursor = moveCursor(0, -1, -1, -1, CONSOLE_OUTPUT);
-					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
-					i--;
-
-				}
-			}
-			// Left
-			else if (secondInput == 75){
-				current_cursor = moveCursor(0, 0, cursor_cursor.X, current_cursor.Y, CONSOLE_OUTPUT);
-				switch (i){
-				case 0:
-					if (HEADER_FOOTER_ATTRIBUTES > 0) HEADER_FOOTER_ATTRIBUTES--;
-					attributes[0] = HEADER_FOOTER_ATTRIBUTES;
-					break;
-				case 1:
-					if (NORMAL_ATTRIBUTES > 0) NORMAL_ATTRIBUTES--;
-					attributes[1] = NORMAL_ATTRIBUTES;
-					break;
-				case 2:
-					if (PROMPT_ATTRIBUTES > 0) PROMPT_ATTRIBUTES--;
-					attributes[2] = PROMPT_ATTRIBUTES;
-					break;
-				case 3:
-					if (DIR_HIGHLIGHT_ATTRIBUTES > 0) DIR_HIGHLIGHT_ATTRIBUTES--;
-					attributes[3] = DIR_HIGHLIGHT_ATTRIBUTES;
-					break;
-				case 4:
-					if (FILE_HIGHLIGHT_ATTRIBUTES > 0) FILE_HIGHLIGHT_ATTRIBUTES--;
-					attributes[4] = FILE_HIGHLIGHT_ATTRIBUTES;
-					break;
-				case 5:
-					if (TAB_SUGGESTION_ATTRIBUTES > 0) TAB_SUGGESTION_ATTRIBUTES--;
-					attributes[5] = TAB_SUGGESTION_ATTRIBUTES;
-					break;
-				case 6:
-					if (CONSOLE_TRANSPARENCY > 50) {
-						CONSOLE_TRANSPARENCY--;
-						swprintf(intstr, 20, L"TRANSPARENCY: %d  ", CONSOLE_TRANSPARENCY);
-						wcscpy(options[6], intstr);
-						setTransparency(CONSOLE_TRANSPARENCY);
-					}
-					break;
-				}
-				original_cursor = getCursor(CONSOLE_OUTPUT);
-				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y, CONSOLE_OUTPUT);
-				current_cursor = draw_options(options, attributes, num_options, width, current_cursor, offsetX, offsetY);
-				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y, CONSOLE_OUTPUT);
-			}
-			// Right
-			else if (secondInput == 77){
-				current_cursor = moveCursor(0, 0, cursor_cursor.X + width - 2, current_cursor.Y, CONSOLE_OUTPUT);
-				switch (i){
-				case 0:
-					if (HEADER_FOOTER_ATTRIBUTES < NUM_ATTRIBUTES - 1) HEADER_FOOTER_ATTRIBUTES++;
-					attributes[0] = HEADER_FOOTER_ATTRIBUTES;
-					break;
-				case 1:
-					if (NORMAL_ATTRIBUTES < NUM_ATTRIBUTES - 1) NORMAL_ATTRIBUTES++;
-					attributes[1] = NORMAL_ATTRIBUTES;
-					break;
-				case 2:
-					if (PROMPT_ATTRIBUTES < NUM_ATTRIBUTES - 1) PROMPT_ATTRIBUTES++;
-					attributes[2] = PROMPT_ATTRIBUTES;
-					break;
-				case 3:
-					if (DIR_HIGHLIGHT_ATTRIBUTES < NUM_ATTRIBUTES - 1) DIR_HIGHLIGHT_ATTRIBUTES++;
-					attributes[3] = DIR_HIGHLIGHT_ATTRIBUTES;
-					break;
-				case 4:
-					if (FILE_HIGHLIGHT_ATTRIBUTES < NUM_ATTRIBUTES - 1) FILE_HIGHLIGHT_ATTRIBUTES++;
-					attributes[4] = FILE_HIGHLIGHT_ATTRIBUTES;
-					break;
-				case 5:
-					if (TAB_SUGGESTION_ATTRIBUTES < NUM_ATTRIBUTES - 1) TAB_SUGGESTION_ATTRIBUTES++;
-					attributes[5] = TAB_SUGGESTION_ATTRIBUTES;
-					break;
-				case 6:
-					if (CONSOLE_TRANSPARENCY < 254) {
-						CONSOLE_TRANSPARENCY++;
-						swprintf(intstr, 20, L"TRANSPARENCY: %d  ", CONSOLE_TRANSPARENCY);
-						wcscpy(options[6], intstr);
-						setTransparency(CONSOLE_TRANSPARENCY);
-					}
-					break;
-				}
-				original_cursor = getCursor(CONSOLE_OUTPUT);
-				current_cursor = moveCursor(0, 0, options_cursor.X, options_cursor.Y, CONSOLE_OUTPUT);
-				current_cursor = draw_options(options, attributes, num_options, width, current_cursor, offsetX, offsetY);
-				current_cursor = moveCursor(0, 0, original_cursor.X, original_cursor.Y, CONSOLE_OUTPUT);
-			}
-			break;
-
-		case L'\r':
-			listening = 0;
-			break;
-		}
-	}
-
-	write_style_file();
-	current_cursor = clear_a_box(current_cursor, height, width, offsetX, offsetY);
-	free(intstr);
-}
 
 
 /* -----WINDOWS----
