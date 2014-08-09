@@ -74,19 +74,17 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 		}
 
 		if (token[0] == L'"'){
-			long_string = L"";
 			if (debug_global){ wprintf(L"SPLIT: Quotations started\n", token); }
+			long_string = L"";
 			we_are_in_quotations = 1;
 			long_string = concat_string(long_string, token + 1, L" ");
-		} 
-		else if (token[length - 1] == L'"'){
+		} else if (token[length - 1] == L'"'){
 			if (debug_global){ wprintf(L"SPLIT: Quotations ended\n", token); }
 			we_are_in_quotations = 0;
 			token[length - 1] = L'\0';
 			long_string = concat_string(long_string, token, NULL);
-		}
-		else if (we_are_in_quotations){
-			long_string = concat_string(long_string, token, NULL);
+		}else if (we_are_in_quotations){
+			long_string = concat_string(long_string, token, L" ");
 		}
 		else {
 			long_string = token;

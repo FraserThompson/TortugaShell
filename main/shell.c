@@ -10,11 +10,6 @@
 #define NUM_COMMANDS 5
 #define NUM_ATTRIBUTES 11
 
-// for memory leak checking
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +23,8 @@
 #include "cwd.h"
 #include "console.h"
 
-
-int debug_global = 1;
+int debug_global = 0;
+int play_song = 0;
 int found = 0; // used as a flag for highlight_command to denote whether we need to build another directory bst
 int CONSOLE_TRANSPARENCY;
 wchar_t *PATH;
@@ -48,7 +43,6 @@ WORD POSSIBLE_ATTRIBUTES[NUM_ATTRIBUTES] = { (BACKGROUND_BLUE | BACKGROUND_GREEN
 wchar_t *TAB_SUGGESTION; //contains the complete tab suggestion
 node *command_tree; //contains the tree of ./commands
 node *current_dir_tree; //contains the tree of the current directory the user is typing
-
 
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
@@ -402,16 +396,18 @@ int main_settings(){
 	WORD border_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY;
 	wchar_t *title = L"SETTINGS";
 	wchar_t *footer = L"SELECT AN OPTION";
+	FILE *style_f;
 
 	int numChars; //stores value for fillconsoleoutputattribute
-	int num_options = 3;
-	wchar_t *options[3] = { L"STYLE", debug_global ? L"DEBUG ON" : L"DEBUG OFF", L"EXIT" };
-	int attributes[3] = { 10, 10, 10 };
+	int num_options = 4;
+	wchar_t *options[4] = { L"STYLE", debug_global ? L"DEBUG ON" : L"DEBUG OFF", play_song ? L"SONG ON" : L"SONG OFF", L"EXIT" };
+	int attributes[4] = { 10, 10, 10, 10 };
 
 	int i = 0;
+	int exit;
 	int listening = 1;
 	int width = 16;
-	int height = 6;
+	int height = 7;
 	int offsetX = 0;
 	int offsetY = 0;
 
@@ -475,26 +471,29 @@ int main_settings(){
 			}
 			break;
 
-		case L'\r':
-			switch (i){
-			case 0:
-				listening = 0;
-				break;
-			case 1:
-				listening = 0;
-				break;
-			case 2:
-				listening = 0;
-				break;
-			}
-			break;
-		}
-	}
+					case L'\r':
+						switch (i){
+						case 0:
+							listening = 0;
+							break;
+						case 1:
+							listening = 0;
+							break;
+						case 2:
+							listening = 0;
+							break;
+						case 3:
+							listening = 0;
+							break;
+						}
+						break;
+					}
+				}
 
 	if (i == 0){
 		current_cursor = draw_a_box(current_cursor, BACKGROUND_GREEN, BACKGROUND_GREEN, title, footer, height, width, 0, 0, 0);
 		style_settings();
-		return 1;
+		exit = 1;
 	}
 	else if (i == 1){
 		if (debug_global){
@@ -503,12 +502,35 @@ int main_settings(){
 		else{
 			debug_global = 1;
 		}
-		return 1;
+
+		exit = 1;
 	}
 	else if (i == 2){
-		clear_a_box(current_cursor, height, width, offsetX, offsetY);
-		return 0;
+		if (play_song){
+			play_song = 0;
+		}
+		else{
+			play_song = 1;
+		}
+
+		exit = 1;
 	}
+	else if (i == 3){
+		clear_a_box(current_cursor, height, width, offsetX, offsetY);
+		exit = 0;
+	}
+
+	write_style_file();
+	return exit;
+}
+
+/* -----CROSS-PLATFORM----
+* Updates style.txt with current values
+*/
+static void write_style_file(){
+	FILE *style_f = fopen("style.txt", "w");
+	fprintf(style_f, "%d %d %d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY, debug_global, play_song);
+	fclose(style_f);
 }
 
 /* -----WINDOWS----
@@ -548,11 +570,11 @@ static void style_settings(){
 		// Draw the selection cursors;
 		advPrint(L"<", CONSOLE_OUTPUT, cursor_cursor.X, current_cursor.Y, select_attributes);
 		advPrint(L">", CONSOLE_OUTPUT, cursor_cursor.X + width - 2, current_cursor.Y, select_attributes);
-		input = _getch();
+		input = _getwch();
 		switch (input){
 		case 224:
 		case 0:
-			secondInput = _getch();
+			secondInput = _getwch();
 			// Down
 			if (secondInput == 80){
 				if (i < num_options - 1){
@@ -668,9 +690,7 @@ static void style_settings(){
 		}
 	}
 
-	style_f = fopen("style.txt", "w");
-	fprintf(style_f, "%d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY);
-	fclose(style_f);
+	write_style_file();
 	current_cursor = clear_a_box(current_cursor, height, width, offsetX, offsetY);
 	free(intstr);
 }
@@ -799,6 +819,7 @@ static wchar_t **readline(int *num_words) {
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
 	wchar_t backspace_buffer = emalloc(sizeof(wchar_t)); //buffers the character removed by the backspace
 	wint_t wcs_buffer;
+	wint_t second_wcs;
 	DWORD backspace_read;
 	COORD cursor_loc;
 	COORD cursor_orig = getCursor(CONSOLE_OUTPUT); //location of the cursor before anything has happened
@@ -822,7 +843,18 @@ static wchar_t **readline(int *num_words) {
 		// Discard arrows/escape
 		case 224:
 		case 0:
-			_getwch();
+			second_wcs = _getwch();
+			switch (second_wcs){
+			case 77:
+				moveCursor(1, 0, -1, -1, CONSOLE_OUTPUT);
+				k++;
+				break;
+			case 75:
+				moveCursor(-1, 0, -1, -1, CONSOLE_OUTPUT);
+				k--;
+				break;
+			}
+
 		case 27:
 			break;
 
@@ -977,7 +1009,7 @@ static wchar_t **readline(int *num_words) {
 	return line_array;
 }
 
-void song(){
+void random_song(){
 	int highest_freq = 1500;
 	int lowest_freq = 80;
 	int longest_dur = 200;
@@ -1020,7 +1052,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	style_f = fopen("style.txt", "r");
 	if (NULL == style_f){
 		style_f = fopen("style.txt", "w");
-		fprintf(style_f, "%d %d %d %d %d %d %d", 0, 1, 2, 3, 4, 5, 240);
+		fprintf(style_f, "%d %d %d %d %d %d %d %d %d", 0, 1, 2, 3, 4, 5, 240, 0, 0);
 		HEADER_FOOTER_ATTRIBUTES = 0;
 		NORMAL_ATTRIBUTES = 1;
 		PROMPT_ATTRIBUTES = 2;
@@ -1030,7 +1062,7 @@ int wmain(int argc, wchar_t *argv[]) {
 		CONSOLE_TRANSPARENCY = 240;
 	}
 	else {
-		fscanf(style_f, "%d %d %d %d %d %d %d", &HEADER_FOOTER_ATTRIBUTES, &NORMAL_ATTRIBUTES, &PROMPT_ATTRIBUTES, &DIR_HIGHLIGHT_ATTRIBUTES, &FILE_HIGHLIGHT_ATTRIBUTES, &TAB_SUGGESTION_ATTRIBUTES, &CONSOLE_TRANSPARENCY);
+		fscanf(style_f, "%d %d %d %d %d %d %d %d %d", &HEADER_FOOTER_ATTRIBUTES, &NORMAL_ATTRIBUTES, &PROMPT_ATTRIBUTES, &DIR_HIGHLIGHT_ATTRIBUTES, &FILE_HIGHLIGHT_ATTRIBUTES, &TAB_SUGGESTION_ATTRIBUTES, &CONSOLE_TRANSPARENCY, &debug_global, &play_song);
 	}
 	fclose(style_f);
 	setTransparency(CONSOLE_TRANSPARENCY);
@@ -1045,7 +1077,10 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	// Build command BST from ./commands directory
 	command_tree = build_command_tree();
-	song();
+	if (play_song){
+		random_song();
+	}
+
 	// Main loop
 	while (!exit) {
 		drawPrompt();
@@ -1056,6 +1091,5 @@ int wmain(int argc, wchar_t *argv[]) {
 
 	free(PATH);
 	bst_free(command_tree);
-	_CrtDumpMemoryLeaks();
 	return EXIT_SUCCESS;
 }

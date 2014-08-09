@@ -31,6 +31,13 @@ int parse(wchar_t **cmdline, int num_words) {
 	int i = 0;
 	int error;
 
+
+	if (num_words < 1){
+		fwprintf(stderr, L"PARSE: Error parsing tokens.\n");
+		return 0;
+	}
+
+
 	// Initialize the struct
 	command_line *line = init_command_line(NULL, L"", NULL, NULL, NULL, 0);
 
@@ -76,7 +83,7 @@ int parse(wchar_t **cmdline, int num_words) {
 	}
 	else if (wcscmp(line->command, L"sing") == 0){
 		if (debug_global){ wprintf(L"PARSE: Got sing.\n"); }
-		song();
+		random_song();
 		return 0;
 	}
 
@@ -84,7 +91,7 @@ int parse(wchar_t **cmdline, int num_words) {
 	if (last_index > 1){
 		/* Internal commands with params*/
 		if (wcscmp(line->command, L"cd") == 0){
-			if (debug_global){ wprintf(L"PARSE: Got cd, changing directory.\n"); }
+			if (debug_global){ wprintf(L"PARSE: Got cd, changing directory to %s.\n", cmdline[1]); }
 			cd(cmdline[1]);
 			if (debug_global){ wprintf(L"PARSE: Done with cd, returning.\n"); }
 			free_command_line(line);
