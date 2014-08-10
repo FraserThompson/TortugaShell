@@ -991,9 +991,6 @@ static wchar_t **readline(int *num_words) {
 			}
 			putwchar(wcs_buffer);
 
-			// Blank any possible usage tips
-			clearLine(width * 3, 0, bottom - 2, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
-
 			// Check to see if the command is recognized
 			word_buffer[wordchar_count] = L'\0';
 			recognized_command = highlight_command(word_buffer, wordchar_count, word_count);
