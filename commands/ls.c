@@ -36,12 +36,26 @@ int wmain(int argc, wchar_t *argv[]){
 	}
 
 	if (argc > 1){
+		if (argv[1] == 0){
+			fwprintf(stderr, L"Invalid path.\n");
+			return NULL;
+		}
 		first_len = wcslen(argv[1]) + 1;
 		suffix = L"\\*.*";
 		second_len = wcslen(suffix) + 1;
 		sDir = malloc(sizeof(wchar_t)* (first_len + second_len));
-		wcsncpy(sDir, argv[1], first_len);
-		wcsncat(sDir, suffix, second_len);
+		if (!sDir){
+			fwprintf(stderr, L"Fatal error allocating memory.\n");
+			return NULL;
+		}
+		if (!wcsncpy(sDir, argv[1], first_len)){
+			fwprintf(stderr, L"Fatal error concatenating strings.\n");
+			return NULL;
+		}
+		if (!wcsncat(sDir, suffix, second_len)){
+			fwprintf(stderr, L"Fatal error concatenating strings.\n");
+			return NULL;
+		}
 	}
 	else {
 		sDir = L".\\*.*";

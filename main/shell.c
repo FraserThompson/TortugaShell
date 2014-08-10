@@ -335,8 +335,8 @@ static node *build_command_tree(void){
 * Updates style.txt with current values
 */
 static void write_style_file(){
-	wchar_t* file_path = concat_string(PATH, L"\\style.txt", NULL);
-	FILE *style_f = _wfopen(file_path, "w");
+	wchar_t *file_path = concat_string(PATH, L"\\style.txt", NULL);
+	FILE *style_f = _wfopen(file_path, L"w");
 	fprintf(style_f, "%d %d %d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY, debug_global, play_song);
 	fclose(style_f);
 }
@@ -413,12 +413,10 @@ static void style_settings(){
 	int i = 0;
 	int height = 10;
 	int width = 30;
-	int num_read;
 	int listening = 1;
 	int offsetY = 4;
 	int offsetX = 9;
 
-	FILE *style_f;
 	wint_t input;
 	wint_t secondInput;
 
@@ -563,13 +561,11 @@ static void style_settings(){
 int main_settings(){
 	COORD current_cursor = getCursor(CONSOLE_OUTPUT);
 	COORD options_cursor = { 1, 1 };
-	COORD original_cursor = current_cursor;
 	WORD select_attributes = BACKGROUND_BLUE | FOREGROUND_INTENSITY;
 	WORD background_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED;
 	WORD border_attributes = BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY;
 	wchar_t *title = L"SETTINGS";
 	wchar_t *footer = L"SELECT AN OPTION";
-	FILE *style_f;
 
 	int numChars; //stores value for fillconsoleoutputattribute
 	int num_options = 4;
@@ -820,7 +816,7 @@ static wchar_t **readline(int *num_words) {
 	wchar_t **line_array; //the completed line split into an array
 	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds each space seperated word
 	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
-	wchar_t backspace_buffer = emalloc(sizeof(wchar_t)); //buffers the character removed by the backspace
+	wchar_t backspace_buffer;
 	wint_t wcs_buffer;
 	wint_t second_wcs;
 	DWORD backspace_read;
@@ -1053,7 +1049,6 @@ int wmain(int argc, wchar_t *argv[]) {
 	wchar_t **line = NULL;
 	HWND ConsoleWindow;
 	FILE *style_f;
-	char buff[11];
 
 	// Get the current working directory
 	size_t cwd_len = wcslen(getCWD()) + 1;

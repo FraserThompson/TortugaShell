@@ -35,9 +35,15 @@ wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
 	wchar_t *result = emalloc(sizeof(wchar_t) * (first_len + second_len + third_len));
 
 	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding first: %s\n", first); }
-	wcsncpy(result, first, first_len);
+	if (!wcsncpy(result, first, first_len)){
+		fwprintf(stderr, L"CONCAT_STRING: Error copying first string to result.\n");
+		return 0;
+	}
 	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding second: %s\n", second); }
-	wcsncat(result, second, second_len);
+	if (!wcsncat(result, second, second_len)) {
+		fwprintf(stderr, L"CONCAT_STRING: Error copying second string to result.\n");
+		return 0;
+	}
 
 	if (third){
 		if (debug_global > 1) { wprintf(L"CONCAT_STRING: Adding third: %s\n", third); }
@@ -77,7 +83,7 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 		if (debug_global){ wprintf(L"SPLIT: Working on token: %s of length %d\n", token, length); }
 
 		if (token[0] == L'"'){
-			if (debug_global){ wprintf(L"SPLIT: Quotations started\n", token); }
+			if (debug_global){ wprintf(L"SPLIT: Quotations started\n"); }
 			long_string = L"";
 			we_are_in_quotations = 1;
 			token = token + 1;
@@ -86,7 +92,7 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 		} 
 		
 		if (token[length - 1] == L'"'){
-			if (debug_global){ wprintf(L"SPLIT: Quotations ended\n", token); }
+			if (debug_global){ wprintf(L"SPLIT: Quotations ended\n"); }
 			we_are_in_quotations = 0;
 			token[length - 1] = L'\0';
 			third_thing = NULL;

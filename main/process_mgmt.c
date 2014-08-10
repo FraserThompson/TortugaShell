@@ -50,7 +50,7 @@ static int write_to_pipe(HANDLE inputFile){
 		chBuf[dwRead] = '\0'; //add terminating character
 		if (debug_global) printf("WRITE_TO_PIPE: Writing %s to pipe.\n", chBuf);
 
-		if (!WriteFile(child_in_write, convert_to_char(chBuf), dwRead, &dwWritten, NULL)) {
+		if (!WriteFile(child_in_write, chBuf, dwRead, &dwWritten, NULL)) {
 			error = GetLastError();
 			fwprintf(stderr, L"WRITE_TO_PIPE: Error %u when writing file to pipe.\n", error);
 			break;

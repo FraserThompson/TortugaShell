@@ -95,7 +95,7 @@ int parse(wchar_t **cmdline, int num_words) {
 			cd(cmdline[1]);
 			if (debug_global){ wprintf(L"PARSE: Done with cd, returning.\n"); }
 			free_command_line(line);
-			return;
+			return 0;
 		}
 
 		i++; // increment i to skip the first token since we've already delt with it
