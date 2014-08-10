@@ -17,7 +17,7 @@ int wmain(int argc, wchar_t *argv[]){
 	//Help message, printed by default if no arguments
 	while (argv[i]){
 		if (argc == 1 || ((wcscmp(argv[i], L"-help") == 0) || (wcscmp(argv[i], L"-h") == 0))) {
-			wprintf(L"rmdir\tPermanently deletes a directory.\n\tUsage: rm [dir]\n");
+			wprintf(L"rmdir\tCreates a directory.\n\tUsage: mkdir [dir]\n");
 			return EXIT_SUCCESS;
 		}
 		i++;
