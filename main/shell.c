@@ -729,7 +729,7 @@ static void drawPrompt(void) {
 * Return: 1 if match
 * Param: Command to check, count of characters in that command
 */
-static int highlight_command(wchar_t *command, int wordchar_count){
+static int highlight_command(wchar_t *command, int wordchar_count, int dirs_only){
 	COORD cursor_loc = getCursor(CONSOLE_OUTPUT); //current cursor location
 	COORD word_begin = cursor_loc; //cursor location at the beginning of the word
 	word_begin.X -= wordchar_count;
@@ -774,7 +774,7 @@ static int highlight_command(wchar_t *command, int wordchar_count){
 	}
 
 	// Check to see if it's a known command
-	if (command_tree != NULL){
+	if (command_tree != NULL && dirs_only == 0){
 		result = bst_search(command_tree, command, &parent);
 	}
 
@@ -886,7 +886,7 @@ static wchar_t **readline(int *num_words) {
 
 				// Stuff to make it generate the BST for a new directory
 				word_buffer[--wordchar_count] = L'\0';
-				highlight_command(word_buffer, ++wordchar_count);
+				highlight_command(word_buffer, ++wordchar_count, 1);
 				word_buffer[wordchar_count - 1] = L'\\';
 				found = 0;
 			}
@@ -996,7 +996,7 @@ static wchar_t **readline(int *num_words) {
 
 			// Check to see if the command is recognized
 			word_buffer[wordchar_count] = L'\0';
-			recognized_command = highlight_command(word_buffer, wordchar_count);
+			recognized_command = highlight_command(word_buffer, wordchar_count, word_count);
 
 			if (debug_global) {
 				swprintf(intstr, 3, L"%d", k);
