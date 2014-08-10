@@ -23,11 +23,10 @@ int wmain(int argc, wchar_t *argv[]){
 		i++;
 	}
 
-	wchar_t *path = argv[1];
-	if (RemoveDirectory(path) == 0) {
-		wprintf(L"\nCouldn't remove %s directory.\n", path);
+	if (RemoveDirectory(argv[1]) == 0) {
+		wprintf(L"\nCouldn't remove %s directory.\n", argv[1]);
 	}
 	else {
-		wprintf(L"\n%s directory removed successfully.\n", path);
+		wprintf(L"\n%s directory removed successfully.\n", argv[1]);
 	}
 }
