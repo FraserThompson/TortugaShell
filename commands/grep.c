@@ -32,10 +32,14 @@ int main(int argc, char *argv[]){
 		i++;
 	}
 
-	if (argv[0]){
-		f = fopen(argv[0], "r");
+	if (argc > 1){
+		f = fopen(argv[1], "r");
+		if (f == NULL){
+			fprintf(stderr, "Couldn't open %s.\n", argv[1]);
+			return EXIT_FAILURE;
+		}
 
-		grep(argv[1], f, NULL);
+		grep(argv[2], f, NULL);
 	}
 }
 int grep(char *regexp, FILE *f, char *name)
