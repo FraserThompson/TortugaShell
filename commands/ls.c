@@ -25,7 +25,7 @@ int wmain(int argc, wchar_t *argv[]){
 	//Help message, printed with -h
 	while (argv[i]){
 		if ((wcscmp(argv[i], L"-help") == 0) || (wcscmp(argv[i], L"-h") == 0)) {
-			printf("ls\tLists the contents of a directory. Use -d to exclude directories from being listed.\n\tUsage: ls [directory] [-h] [-d]\n");
+			printf("ls\tLists the contents of a directory.\n\tUsage: ls [directory] [-h] [-d]\n");
 			return EXIT_SUCCESS;
 		}
 		else if ((wcscmp(argv[i], L"-d") == 0)){
