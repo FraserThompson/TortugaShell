@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 
 /* 
 * Moves a file from one location to another.
@@ -17,6 +16,7 @@ int main(int argc, char *argv[]){
 	FILE *fd1 = NULL;
 	FILE *fd2 = NULL;
 	int count = 0;
+	int status;
 	char buf[512];
 
 	//Help message, printed by default if no arguments
@@ -52,6 +52,11 @@ int main(int argc, char *argv[]){
 
 			fclose(fd2);
 			fclose(fd1);
+			status = remove(argv[1]);
+			if (status == 1){
+				fprintf(stderr, "MV: Could not remove output file '%s'.\n", argv[1]);
+				return EXIT_FAILURE;
+			}
 		}
 	}
 	return EXIT_SUCCESS;
