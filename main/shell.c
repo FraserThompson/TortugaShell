@@ -708,7 +708,7 @@ static void drawPrompt(void) {
 	int width = getConsoleWidth(CONSOLE_OUTPUT);
 
 	// If we're going to be printing over the footer then move everything down
-	if (current_cursor.Y >= height - 2){
+	if (current_cursor.Y >= height - 4){
 
 		//Clear footer
 		clearLine(width, 0, height, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
@@ -717,8 +717,8 @@ static void drawPrompt(void) {
 		clearLine(width, 0, 0, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 		// Move cursor down to scroll then back up for typing
-		current_cursor = moveCursor(0, 3, -1, -1, CONSOLE_OUTPUT);
-		current_cursor = moveCursor(0, -4, -1, -1, CONSOLE_OUTPUT);
+		current_cursor = moveCursor(0, 4, -1, -1, CONSOLE_OUTPUT);
+		current_cursor = moveCursor(0, -5, -1, -1, CONSOLE_OUTPUT);
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[PROMPT_ATTRIBUTES]);
