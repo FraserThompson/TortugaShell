@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
 		if ((fp = fopen(argv[1], "r")) != NULL){
 			char line[256];
 			while (fgets(line, 256, fp)){
-				fputs(line, stdout);
+				wprintf(L"%s\n", line);
 			}
 			fclose(fp);
 			return EXIT_SUCCESS; //this is 0
