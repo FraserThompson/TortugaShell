@@ -82,17 +82,16 @@ static int write_to_pipe(HANDLE inputFile){
 * Parameters: Location to write to, pointer to allocated wchar_t memory to hold stdout
 * Return: Error code - 0 if success
 */
-static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
+static int read_from_pipe(wchar_t *out_file, wchar_t **variable, int isVar){
 	DWORD dwRead, dwWritten;
 	CHAR chBuf[BUFSIZE];
 	wchar_t *chBuf_w = emalloc(sizeof(wchar_t)* BUFSIZE);
 	BOOL success = FALSE;
 	HANDLE parent_out = NULL;
 	int error = 0;
-	int isVar = wcscmp(out_file, L":var:");
 
 	// Open handle to output file unless we want to return a variable
-	if (isVar != 0){
+	if (!isVar){
 		parent_out = CreateFileW(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
@@ -120,7 +119,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 
 		}
 
-		if (isVar != 0) {
+		if (!isVar) {
 			success = WriteFile(parent_out, chBuf, dwRead, &dwWritten, NULL);
 			if (!success) {
 				error = GetLastError();
@@ -138,7 +137,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 		}
 	}
 
-	if (isVar != 0){
+	if (!isVar){
 		if (!CloseHandle(parent_out)){
 			fwprintf(stderr, L"READ_FROM_PIPE: Error %u when closing output handle.", GetLastError());
 		}
@@ -147,7 +146,6 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 		}
 
 	}
-
 
 	return error;
 }
@@ -324,9 +322,15 @@ int create_process(command_line *line) {
 
 	// Read from the childs output buffer and write to file
 	if (line->redirectOut){
-		wchar_t *tempBuf;
-		rError = read_from_pipe(line->redirectOut, &tempBuf);
-		line->output = _wcsdup(tempBuf);
+		int isVar = wcscmp(line->redirectOut, L":var:");
+		if (isVar == 0){
+			wchar_t *tempBuf;
+			rError = read_from_pipe(line->redirectOut, &tempBuf, 1);
+			line->output = _wcsdup(tempBuf);
+		}
+		else {
+			rError = read_from_pipe(line->redirectOut, NULL, 0);
+		}
 
 		if (rError != 0 && rError != 109){
 			pError = 50;
