@@ -23,26 +23,29 @@
 #include "cwd.h"
 #include "console.h"
 
+wchar_t *PATH;
+HANDLE CONSOLE_OUTPUT;
+HANDLE CONSOLE_INPUT;
+WORD POSSIBLE_ATTRIBUTES[NUM_ATTRIBUTES] = { (BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY), (FOREGROUND_INTENSITY), (FOREGROUND_RED),
+(FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY), (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED),
+(FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE), (FOREGROUND_BLUE | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_RED | FOREGROUND_GREEN),
+(BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED) };
+wchar_t *TAB_SUGGESTION; //contains the complete tab suggestion
+wchar_t **COMMAND_LINE_HISTORY; //contains user input history
+node *command_tree; //contains the tree of ./commands
+node *current_dir_tree; //contains the tree of the current directory the user is typing
+int LINE_COUNT = 0;
+int HISTORY_MAX = 256;
 int debug_global = 0;
 int play_song = 0;
 int found = 0; // used as a flag for highlight_command to denote whether we need to build another directory bst
 int CONSOLE_TRANSPARENCY = 240;
-wchar_t *PATH;
-HANDLE CONSOLE_OUTPUT;
-HANDLE CONSOLE_INPUT;
 int HEADER_FOOTER_ATTRIBUTES = 0;
 int NORMAL_ATTRIBUTES = 1;
 int PROMPT_ATTRIBUTES = 2;
 int DIR_HIGHLIGHT_ATTRIBUTES = 3;
 int FILE_HIGHLIGHT_ATTRIBUTES = 4;
 int TAB_SUGGESTION_ATTRIBUTES = 5;
-WORD POSSIBLE_ATTRIBUTES[NUM_ATTRIBUTES] = { (BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY), (FOREGROUND_INTENSITY), (FOREGROUND_RED), 
-(FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY),(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED), 
-(FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE), (FOREGROUND_BLUE | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_RED | FOREGROUND_GREEN),
-(BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED)};
-wchar_t *TAB_SUGGESTION; //contains the complete tab suggestion
-node *command_tree; //contains the tree of ./commands
-node *current_dir_tree; //contains the tree of the current directory the user is typing
 
 /* -----CROSS-PLATFORM----
 * Malloc with error checking.
@@ -814,16 +817,18 @@ static int highlight_command(wchar_t *command, int wordchar_count, int dirs_only
 */
 static wchar_t **readline(int *num_words) {
 	wchar_t **line_array; //the completed line split into an array
-	wchar_t *word_buffer = emalloc(sizeof(wchar_t) * MAX_WORD); //holds each space seperated word
-	wchar_t *line_buffer = emalloc(sizeof(wchar_t) * MAX_LINE); //holds the entire line
+	wchar_t *word_buffer = emalloc(sizeof(wchar_t)* MAX_WORD); //holds each space seperated word
+	wchar_t *line_buffer = emalloc(sizeof(wchar_t)* MAX_LINE); //holds the entire line
 	wchar_t backspace_buffer;
 	wint_t wcs_buffer;
 	wint_t second_wcs;
 	DWORD backspace_read;
+	DWORD written;
 	COORD cursor_loc;
 	COORD word_begin = getCursor(CONSOLE_OUTPUT);
 	COORD cursor_orig = getCursor(CONSOLE_OUTPUT); //location of the cursor before anything has happened
 	int tab_suggestion_len;
+	int hist_pos = LINE_COUNT;
 	int count;
 	int end_of_line = 0;
 	int width = getConsoleWidth(CONSOLE_OUTPUT);
@@ -855,6 +860,35 @@ static wchar_t **readline(int *num_words) {
 				cursor_loc = getCursor(CONSOLE_OUTPUT);
 				if (cursor_loc.X > 1){
 					moveCursor(-1, 0, -1, -1, CONSOLE_OUTPUT);
+				}
+				break;
+			case 72:
+				if ((LINE_COUNT > 0) && (hist_pos - 1 >= 0)){
+					FillConsoleOutputAttribute(CONSOLE_OUTPUT, NULL, width, cursor_orig, &written);
+					FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, cursor_orig, &written);
+					wcscpy(line_buffer, COMMAND_LINE_HISTORY[--hist_pos]);
+					k = wcslen(line_buffer);
+					advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
+					moveCursor(0, 0, k + 1, -1, CONSOLE_OUTPUT);
+				}
+				break;
+			case 80:
+				if ((LINE_COUNT < HISTORY_MAX) && (hist_pos + 1 < LINE_COUNT)){
+					FillConsoleOutputAttribute(CONSOLE_OUTPUT, NULL, width, cursor_orig, &written);
+					FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, cursor_orig, &written);
+					wcscpy(line_buffer, COMMAND_LINE_HISTORY[++hist_pos]);
+					k = wcslen(line_buffer);
+					advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
+					moveCursor(0, 0, k + 1, -1, CONSOLE_OUTPUT);
+				} 
+				else if (hist_pos + 1 == LINE_COUNT){
+					FillConsoleOutputAttribute(CONSOLE_OUTPUT, NULL, width, cursor_orig, &written);
+					FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, cursor_orig, &written);
+					clearLine(cursor_orig.X, cursor_orig.Y, width, NULL);
+					wcscpy(line_buffer, L"");
+					k = wcslen(line_buffer);
+					advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
+					moveCursor(0, 0, k + 1, -1, CONSOLE_OUTPUT);
 				}
 				break;
 			}
@@ -977,16 +1011,15 @@ static wchar_t **readline(int *num_words) {
 			break;
 
 		default:
-
 			cursor_loc = getCursor(CONSOLE_OUTPUT);
 
 			// If the cursor is at the same position in the line array
 			if (cursor_loc.X == k + 1){
 				line_buffer[k++] = wcs_buffer;
 				word_buffer[wordchar_count++] = wcs_buffer;
-			} 
+			}
 			// If the cursor is less than the position in the line array
-			else if(cursor_loc.X < k + 1){
+			else if (cursor_loc.X < k + 1){
 				line_buffer[cursor_loc.X - 1] = wcs_buffer;
 			}
 			putwchar(wcs_buffer);
@@ -1018,9 +1051,13 @@ static wchar_t **readline(int *num_words) {
 	// Split into array
 	line_array = split(line_buffer, L" ", &count);
 	*num_words = count;
+	if (LINE_COUNT < HISTORY_MAX){
+		COMMAND_LINE_HISTORY[LINE_COUNT++] = _wcsdup(line_buffer);
+	}
 
 	free(word_buffer);
 	free(line_buffer);
+
 	if (current_dir_tree){
 		bst_free(current_dir_tree);
 		current_dir_tree = NULL;
@@ -1057,8 +1094,9 @@ int wmain(int argc, wchar_t *argv[]) {
 	HWND ConsoleWindow;
 	FILE *style_f;
 
+	COMMAND_LINE_HISTORY= emalloc(sizeof(wchar_t*)* HISTORY_MAX);
+
 	// Get the PATH
-	//PATH = _wcsdup(getCWD());
 	getCWD_s(&PATH);
 
 	// Get standard handles

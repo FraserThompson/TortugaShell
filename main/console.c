@@ -39,7 +39,7 @@ void clearLine(int width, int x, int y, WORD attributes){
 	}
 
 	FillConsoleOutputAttribute(CONSOLE_OUTPUT, attributes, width, coords, &written);
-	FillConsoleOutputCharacter(CONSOLE_OUTPUT, L' ', width, coords, &written);
+	FillConsoleOutputCharacterW(CONSOLE_OUTPUT, L' ', width, coords, &written);
 }
 
 void clearScreen(HANDLE buffer){
