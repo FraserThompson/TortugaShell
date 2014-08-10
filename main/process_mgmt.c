@@ -93,6 +93,11 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable, int isVar){
 	// Open handle to output file unless we want to return a variable
 	if (!isVar){
 		parent_out = CreateFileW(out_file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		error = GetLastError();
+		if (error == 5){
+			fwprintf(stderr, L"READ_FROM_PIPE: Access to file '%s' denied.\n", out_file);
+			return error;
+		}
 	}
 
 	// Close write end of pipe before reading read end
@@ -139,7 +144,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable, int isVar){
 
 	if (!isVar){
 		if (!CloseHandle(parent_out)){
-			fwprintf(stderr, L"READ_FROM_PIPE: Error %u when closing output handle.", GetLastError());
+			fwprintf(stderr, L"READ_FROM_PIPE: Error %u when closing output handle.\n", GetLastError());
 		}
 		else {
 			if (debug_global){ wprintf(L"READ_FROM_PIPE: Output pipe handle closed.\n"); }
