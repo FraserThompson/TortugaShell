@@ -2,13 +2,25 @@ TORTUGA SHELL
 ==============
 This is a simple shell designed for learning.
 
+How to Use
+-------------
+Double clicking Tortuga.exe will open the shell. You are now able to execute commands by typing them.
+
+
 Execution Path
 -------------
- First build_command_tree() is called to build a BST from the ./commands directory to allow for syntax highlighting.
-drawPrompt() then draws the prompt and header.  
-readline() begins processing characters inputted by the user and provides backspace/arrow key functionality. highlightCommand() is called every time a character is inputted to check to see if it's a known command and print the associated help message, and to check if it's an existing directory/file. Every time a slash is inputted it builds a BST from the directory to facilitate quick searching.
-Once the user presses enter the line is given to split() to split into an array of tokens by spaces and quotation marks. This array is given to Parse() where it is processed into a command_line structure containing the command, arguments, and redirection locations if given. Parse sends the struct to create_process() who opens the relevant pipes (if redirection is specified) and then creates the child process by calling create_child(). 
-Once the execution is finished create_process() cleans up and returns an error code specifying whether it was successfull. The main loop continues until parse() returns 0 indicating the user wishes to exit.
+1. build_command_tree() is called to build a BST from the ./commands directory to allow for syntax highlighting.
+2. drawPrompt() then draws the prompt and header.  
+3. readline() begins processing characters inputted by the user and provides backspace/arrow key functionality.
+    * highlightCommand() is called every time a character is inputted to check to see if it's a known command and print the associated help message, and to check if it's an existing directory/file. Every time a slash is inputted it builds a BST from the directory to facilitate quick searching.
+
+4. Once the user presses enter the line is given to split() to split into an array of tokens by spaces and quotation marks. 
+5. This array is given to Parse() where it is processed into a command_line structure containing the command, arguments, and redirection locations if given. 
+6. Parse sends the struct to create_process() who opens the relevant pipes (if redirection is specified) and then creates the child process by calling create_child(). 
+7. Once the execution is finished create_process() cleans up and returns an error code specifying whether it was successfull. 
+
+The main loop continues until parse() returns 0 indicating the user wishes to exit.
+
 
 Main Modules
 -------------
