@@ -81,8 +81,8 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 			long_string = L"";
 			we_are_in_quotations = 1;
 			token = token + 1;
-			length--;
 			third_thing = space;
+			length--;
 		} 
 		
 		if (token[length - 1] == L'"'){
@@ -102,7 +102,7 @@ wchar_t **split(wchar_t *str, wchar_t *delimiter, int *last_index) {
 			commands = erealloc(commands, sizeof(wchar_t*)* ++count);
 			commands[count - 1] = _wcsdup(long_string);
 			if (debug_global){ wprintf(L"SPLIT: Done with token: %s\n", commands[count - 1]); }
-			free(long_string);
+			long_string = L"";
 		}
 
 		token = wcstok(0, delimiter);

@@ -26,16 +26,16 @@
 int debug_global = 0;
 int play_song = 0;
 int found = 0; // used as a flag for highlight_command to denote whether we need to build another directory bst
-int CONSOLE_TRANSPARENCY;
+int CONSOLE_TRANSPARENCY = 240;
 wchar_t *PATH;
 HANDLE CONSOLE_OUTPUT;
 HANDLE CONSOLE_INPUT;
-int HEADER_FOOTER_ATTRIBUTES;
-int NORMAL_ATTRIBUTES;
-int PROMPT_ATTRIBUTES;
-int DIR_HIGHLIGHT_ATTRIBUTES;
-int FILE_HIGHLIGHT_ATTRIBUTES;
-int TAB_SUGGESTION_ATTRIBUTES;
+int HEADER_FOOTER_ATTRIBUTES = 0;
+int NORMAL_ATTRIBUTES = 1;
+int PROMPT_ATTRIBUTES = 2;
+int DIR_HIGHLIGHT_ATTRIBUTES = 3;
+int FILE_HIGHLIGHT_ATTRIBUTES = 4;
+int TAB_SUGGESTION_ATTRIBUTES = 5;
 WORD POSSIBLE_ATTRIBUTES[NUM_ATTRIBUTES] = { (BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY), (FOREGROUND_INTENSITY), (FOREGROUND_RED), 
 (FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY),(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED), 
 (FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_BLUE), (FOREGROUND_BLUE | FOREGROUND_INTENSITY), (FOREGROUND_GREEN | FOREGROUND_INTENSITY), (FOREGROUND_RED | FOREGROUND_GREEN),
@@ -335,7 +335,8 @@ static node *build_command_tree(void){
 * Updates style.txt with current values
 */
 static void write_style_file(){
-	FILE *style_f = fopen("style.txt", "w");
+	wchar_t* file_path = concat_string(PATH, L"\\style.txt", NULL);
+	FILE *style_f = _wfopen(file_path, "w");
 	fprintf(style_f, "%d %d %d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY, debug_global, play_song);
 	fclose(style_f);
 }
@@ -572,13 +573,13 @@ int main_settings(){
 
 	int numChars; //stores value for fillconsoleoutputattribute
 	int num_options = 4;
-	wchar_t *options[4] = { L"STYLE", debug_global ? L"DEBUG ON" : L"DEBUG OFF", play_song ? L"SONG ON" : L"SONG OFF", L"EXIT" };
+	wchar_t *options[4] = { L"STYLE", debug_global ? L"DEBUG ON" : L"DEBUG OFF", play_song ? L"STARTUP SONG ON" : L"STARTUP SONG OFF", L"EXIT" };
 	int attributes[4] = { 10, 10, 10, 10 };
 
 	int i = 0;
 	int exit;
 	int listening = 1;
-	int width = 16;
+	int width = 22;
 	int height = 7;
 	int offsetX = 0;
 	int offsetY = 0;
@@ -1070,14 +1071,7 @@ int wmain(int argc, wchar_t *argv[]) {
 	style_f = fopen("style.txt", "r");
 	if (NULL == style_f){
 		style_f = fopen("style.txt", "w");
-		fprintf(style_f, "%d %d %d %d %d %d %d %d %d", 0, 1, 2, 3, 4, 5, 240, 0, 0);
-		HEADER_FOOTER_ATTRIBUTES = 0;
-		NORMAL_ATTRIBUTES = 1;
-		PROMPT_ATTRIBUTES = 2;
-		DIR_HIGHLIGHT_ATTRIBUTES = 3;
-		FILE_HIGHLIGHT_ATTRIBUTES = 4;
-		TAB_SUGGESTION_ATTRIBUTES = 5;
-		CONSOLE_TRANSPARENCY = 240;
+		fprintf(style_f, "%d %d %d %d %d %d %d %d %d", HEADER_FOOTER_ATTRIBUTES, NORMAL_ATTRIBUTES, PROMPT_ATTRIBUTES, DIR_HIGHLIGHT_ATTRIBUTES, FILE_HIGHLIGHT_ATTRIBUTES, TAB_SUGGESTION_ATTRIBUTES, CONSOLE_TRANSPARENCY, debug_global, play_song);
 	}
 	else {
 		fscanf(style_f, "%d %d %d %d %d %d %d %d %d", &HEADER_FOOTER_ATTRIBUTES, &NORMAL_ATTRIBUTES, &PROMPT_ATTRIBUTES, &DIR_HIGHLIGHT_ATTRIBUTES, &FILE_HIGHLIGHT_ATTRIBUTES, &TAB_SUGGESTION_ATTRIBUTES, &CONSOLE_TRANSPARENCY, &debug_global, &play_song);
