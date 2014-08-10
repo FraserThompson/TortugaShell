@@ -217,7 +217,7 @@ static node *tree_from_dir(wchar_t *dir){
 			if (fdFile.dwFileAttributes &FILE_ATTRIBUTE_DIRECTORY)
 			{
 				newnode->type = 1;
-				newnode->title = concat_string(newnode->title, L"\\", NULL);
+				newnode->title = wcsncat(newnode->title, L"\\", 2);
 			}
 
 			if (root == NULL){
@@ -821,7 +821,9 @@ static wchar_t **readline(int *num_words) {
 	wint_t second_wcs;
 	DWORD backspace_read;
 	COORD cursor_loc;
+	COORD word_begin = getCursor(CONSOLE_OUTPUT);
 	COORD cursor_orig = getCursor(CONSOLE_OUTPUT); //location of the cursor before anything has happened
+	int tab_suggestion_len;
 	int count;
 	int end_of_line = 0;
 	int width = getConsoleWidth(CONSOLE_OUTPUT);
@@ -863,18 +865,26 @@ static wchar_t **readline(int *num_words) {
 		case L'\t':
 			if (TAB_SUGGESTION){
 				cursor_loc = getCursor(CONSOLE_OUTPUT);
+				tab_suggestion_len = wcslen(TAB_SUGGESTION);
 
-				// Copy all the relevant things to the places
-				wcscpy(line_buffer, TAB_SUGGESTION);
-				wcscpy(word_buffer, TAB_SUGGESTION);
-				k = wcslen(TAB_SUGGESTION);
-				wordchar_count = k;
+				// Remove the word fragment from the line buffer
+				k -= wordchar_count;
+				cursor_loc.X -= wordchar_count;
+				line_buffer[k] = L'\0';
+
+				// Add the tab suggestion to the line buffer
+				wcsncat(line_buffer, TAB_SUGGESTION, tab_suggestion_len + 1);
+				k += tab_suggestion_len;
+
+				//Add the tab suggestion to the wordbuffer
+				wcsncpy(word_buffer, TAB_SUGGESTION, tab_suggestion_len + 1);
+				wordchar_count = tab_suggestion_len;
 
 				// Print the suggestion and move cursor to the end
-				advPrint(line_buffer, CONSOLE_OUTPUT, 1, cursor_orig.Y, POSSIBLE_ATTRIBUTES[DIR_HIGHLIGHT_ATTRIBUTES]);
-				moveCursor(1 + k - cursor_loc.X, 0, -1, -1, CONSOLE_OUTPUT);
+				advPrint(TAB_SUGGESTION, CONSOLE_OUTPUT, cursor_loc.X, cursor_orig.Y, POSSIBLE_ATTRIBUTES[DIR_HIGHLIGHT_ATTRIBUTES]);
+				moveCursor(0, 0, k + 1, -1, CONSOLE_OUTPUT);
 
-				// Lazy stuff to get around an issue
+				// Stuff to make it generate the BST for a new directory
 				word_buffer[--wordchar_count] = L'\0';
 				highlight_command(word_buffer, ++wordchar_count);
 				word_buffer[wordchar_count - 1] = L'\\';
@@ -962,6 +972,7 @@ static wchar_t **readline(int *num_words) {
 			wordchar_count = 0;
 			memset(word_buffer, 0, wordchar_count);
 			line_buffer[k++] = wcs_buffer;
+			word_begin = getCursor(CONSOLE_OUTPUT);
 			putwchar(wcs_buffer);
 			break;
 

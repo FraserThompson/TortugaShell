@@ -126,10 +126,13 @@ int parse(wchar_t **cmdline, int num_words) {
 
 	error = create_process(line);
 
-	if (error == 2 || error == 3){
+	if (error == 2 || error == 3 ){
 		fwprintf(stderr, L"PARSE: '%s' is not recognized as a path to a file or an internal/external command.\n", line->command);
 	}
 
+	if (error == 5){
+		fwprintf(stderr, L"PARSE: '%s' is a directory.\n", line->command);
+	}
 	if (error == 50){
 		fwprintf(stderr, L"PARSE: Redirection error.\n");
 	}

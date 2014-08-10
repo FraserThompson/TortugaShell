@@ -55,6 +55,43 @@ wchar_t *concat_string(wchar_t *first, wchar_t *second, wchar_t *third){
 }
 
 /* -----WINDOWS----
+* Concatenates up to three strings dynamically.
+* Parameter: First string, second string, third string (or null).
+* Return: Resulting concatenation.
+*/
+void concat_string_r(wchar_t *first, wchar_t *second, wchar_t *third, wchar_t **result){
+	size_t first_len = wcslen(first) + 1;
+	size_t second_len = wcslen(second) + 1;
+	size_t third_len = 0;
+
+	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Input: %s %s\n", first, second); }
+	if (third){
+		if (debug_global > 1){ wprintf(L"CONCAT_STRING: Input: %s\n", third); }
+		third_len = wcslen(third) + 1;
+	}
+
+	*result = erealloc(*result, sizeof(wchar_t)* (first_len + second_len + third_len));
+
+	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding first: %s\n", first); }
+	if (!wcsncpy(*result, first, first_len)){
+		fwprintf(stderr, L"CONCAT_STRING: Error copying first string to result.\n");
+		return 0;
+	}
+	if (debug_global > 1){ wprintf(L"CONCAT_STRING: Adding second: %s\n", second); }
+	if (!wcsncat(*result, second, second_len)) {
+		fwprintf(stderr, L"CONCAT_STRING: Error copying second string to result.\n");
+		return 0;
+	}
+
+	if (third){
+		if (debug_global > 1) { wprintf(L"CONCAT_STRING: Adding third: %s\n", third); }
+		wcsncat(*result, third, third_len);
+	}
+
+	if (debug_global > 1) { wprintf(L"CONCAT_STRING: Returning: %s\n", result); }
+}
+
+/* -----WINDOWS----
 * Splits a string of space seperated words into an array of words
 * Parameter: String to split, delimiter, memory address of integer to store index of last item.
 * Return: Array of words
