@@ -133,7 +133,7 @@ static int read_from_pipe(wchar_t *out_file, wchar_t **variable){
 		}
 		else {
 			chBuf_w = convert_to_wchar(chBuf);
-			wcscpy(variable, chBuf_w);
+			*variable = _wcsdup(chBuf_w);
 			free(chBuf_w);
 		}
 	}
@@ -324,7 +324,7 @@ int create_process(command_line *line) {
 
 	// Read from the childs output buffer and write to file
 	if (line->redirectOut){
-		wchar_t *tempBuf[BUFSIZE];
+		wchar_t *tempBuf;
 		rError = read_from_pipe(line->redirectOut, &tempBuf);
 		line->output = _wcsdup(tempBuf);
 
