@@ -27,3 +27,14 @@ wchar_t *getCWD(){
 
 	return cwd;
 }
+
+void getCWD_s(wchar_t **output){
+	wchar_t cwd[BUFSIZE];
+
+	if (!GetCurrentDirectoryW(BUFSIZE, cwd)) {
+		fwprintf(stderr, L"CWD: Fatal error getting current directory! %d\n", GetLastError());
+		exit(EXIT_FAILURE);
+	}
+
+	*output = _wcsdup(cwd);
+}

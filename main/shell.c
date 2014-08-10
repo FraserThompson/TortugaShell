@@ -1053,15 +1053,13 @@ int wmain(int argc, wchar_t *argv[]) {
 	int i = 0;
 	int exit = 0;
 	int num_words;
-	wchar_t *cwd = getCWD();
 	wchar_t **line = NULL;
 	HWND ConsoleWindow;
 	FILE *style_f;
 
-	// Get the current working directory
-	size_t cwd_len = wcslen(getCWD()) + 1;
-	PATH = malloc(sizeof(wchar_t)* cwd_len);
-	wcscpy(PATH, cwd);
+	// Get the PATH
+	//PATH = _wcsdup(getCWD());
+	getCWD_s(&PATH);
 
 	// Get standard handles
 	CONSOLE_OUTPUT = GetStdHandle(STD_OUTPUT_HANDLE);
