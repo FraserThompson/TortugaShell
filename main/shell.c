@@ -717,8 +717,8 @@ static void drawPrompt(void) {
 		clearLine(width, 0, 0, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 		// Move cursor down to scroll then back up for typing
-		current_cursor = moveCursor(0, 4, -1, -1, CONSOLE_OUTPUT);
-		current_cursor = moveCursor(0, -5, -1, -1, CONSOLE_OUTPUT);
+		current_cursor = moveCursor(0, 5, -1, -1, CONSOLE_OUTPUT);
+		current_cursor = moveCursor(0, -6, -1, -1, CONSOLE_OUTPUT);
 	}
 
 	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[PROMPT_ATTRIBUTES]);
