@@ -212,13 +212,17 @@ static int open_input_pipe(wchar_t *redirectIn){
 */
 static wchar_t *get_argv(wchar_t *params, wchar_t *command){
 	wchar_t *argv;
+	wchar_t *params_quotes;
+	wchar_t *command_quotes = concat_string(L"\"", command, L"\"");
 
 	if (params){
 		if (debug_global) wprintf(L"GET_ARGV: There are parameters. Adding them to the argv.\n");
-		argv = concat_string(command, L" ", params);
+		params_quotes = concat_string(L"\"", params, L"\"");
+		argv = concat_string(command_quotes, L" ", params_quotes);
+		//free(params_quotes);
 	}
 	else {
-		argv = concat_string(command, L"", NULL); //to make freeing memory easier
+		argv = concat_string(command_quotes, L"", NULL); //to make freeing memory easier
 	}
 
 	if (debug_global) wprintf(L"GET_ARGV: Argv is %s.\n", argv);
@@ -418,12 +422,5 @@ static void close_handles(){
 	}
 	else {
 		if (debug_global) wprintf(L"CLEAN_UP: Child input read pipe handle closed.\n");
-	}
-
-	if (!CloseHandle(child_out_read)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child output read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
-	}
-	else {
-		if (debug_global) wprintf(L"CLEAN_UP: Child output read pipe handle closed.\n");
 	}
 }
