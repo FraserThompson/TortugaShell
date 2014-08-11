@@ -105,11 +105,13 @@ int parse(wchar_t **cmdline, int num_words) {
 			if (debug_global) wprintf(L"PARSE: Working on item: %ws\n", cmdline[i]);
 
 			if (wcscmp(cmdline[i], L">") == 0){
-				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %s\n", cmdline[++i]);
+				i++;
+				if (debug_global) wprintf(L"PARSE: Adding redirectOut location: %s\n", cmdline[i]);
 				line->redirectOut = _wcsdup(cmdline[i]);
 			}
 			else if (wcscmp(cmdline[i], L"<") == 0){
-				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", cmdline[++i]);
+				i++;
+				if (debug_global) wprintf(L"PARSE: Adding redirectIn location: %s\n", cmdline[i]);
 				line->redirectOut = _wcsdup(cmdline[i]);
 			}
 			else {
