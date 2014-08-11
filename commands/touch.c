@@ -27,9 +27,13 @@ int main(int argc, char *argv[]){
 	}
 	if (argv[1]){
 		createdfile = fopen(argv[1], "w+");
-
-		printf("TOUCH: File %s has been created.\n", argv[1]);
-		fclose(createdfile);
+		if (createdfile != NULL){
+			printf("TOUCH: File %s has been created.\n", argv[1]);
+			fclose(createdfile);
+		}
+		else {
+			fprintf(stderr, "TOUCH: Error creating File %s.\n", argv[1]);
+		}
 
 		return 0;
 	}

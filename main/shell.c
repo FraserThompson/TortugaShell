@@ -440,8 +440,8 @@ static void style_settings(){
 			// Down
 			if (secondInput == 80){
 				if (i < num_options - 1){
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, options_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, options_cursor.X + width - 2, current_cursor.Y, select_attributes);
 					current_cursor = moveCursor(0, 1, -1, -1, CONSOLE_OUTPUT);
 					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
 					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
@@ -451,8 +451,8 @@ static void style_settings(){
 			// Up
 			else if (secondInput == 72){
 				if (i > 0){
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
-					advPrint(L" ", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, options_cursor.X, current_cursor.Y, select_attributes);
+					advPrint(L" ", CONSOLE_OUTPUT, options_cursor.X + width - 2, current_cursor.Y, select_attributes);
 					current_cursor = moveCursor(0, -1, -1, -1, CONSOLE_OUTPUT);
 					advPrint(L">", CONSOLE_OUTPUT, current_cursor.X, current_cursor.Y, select_attributes);
 					advPrint(L"<", CONSOLE_OUTPUT, current_cursor.X + width - 2, current_cursor.Y, select_attributes);
@@ -1062,6 +1062,8 @@ static wchar_t **readline(int *num_words) {
 		bst_free(current_dir_tree);
 		current_dir_tree = NULL;
 	}
+
+	SetConsoleTextAttribute(CONSOLE_OUTPUT, POSSIBLE_ATTRIBUTES[NORMAL_ATTRIBUTES]);
 
 	return line_array;
 }

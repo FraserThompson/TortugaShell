@@ -166,9 +166,9 @@ static int open_output_pipe(){
 		return 3;
 	}
 	else {
-		if (debug_global){ wprintf(L"CREATE_PROCESS: Stdout pipe created.\n"); }
+		if (debug_global){ wprintf(L"OPEN_OUTPUT_PIPE: Stdout pipe created.\n"); }
+		SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
 	}
-	SetHandleInformation(child_out_read, HANDLE_FLAG_INHERIT, 0);
 	return 0;
 }
 
@@ -194,7 +194,7 @@ static int open_input_pipe(wchar_t *redirectIn){
 		return 3;
 	}
 	else {
-		if (debug_global) wprintf(L"CREATE_PROCESS: Handle to file '%ws' created.\n", redirectIn);
+		if (debug_global) wprintf(L"CREATE_PROCESS: Handle to file '%s' created.\n", redirectIn);
 	}
 
 	return 0;
@@ -404,21 +404,21 @@ int create_child(wchar_t *command, wchar_t *params){
 
 static void close_handles(){
 	if (!CloseHandle(child_in_write)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+		if (debug_global) wprintf(L"CLEAN_UP: Error %u when closing child input write handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
 	}
 	else {
 		if (debug_global) wprintf(L"CLEAN_UP: Child input write pipe handle closed.\n");
 	}
 
 	if (!CloseHandle(child_in_read)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child input read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+		if (debug_global) wprintf(L"CLEAN_UP: Error %u when closing child input read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
 	}
 	else {
 		if (debug_global) wprintf(L"CLEAN_UP: Child input read pipe handle closed.\n");
 	}
 
 	if (!CloseHandle(child_out_read)) {
-		if (debug_global > 1) wprintf(L"CLEAN_UP: Error %u when closing child output read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
+		if (debug_global) wprintf(L"CLEAN_UP: Error %u when closing child output read handle. Could be that it doesn't exist, that's okay.\n", GetLastError());
 	}
 	else {
 		if (debug_global) wprintf(L"CLEAN_UP: Child output read pipe handle closed.\n");
